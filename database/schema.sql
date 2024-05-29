@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     active BOOLEAN NOT NULL DEFAULT true,
     email_verified BOOLEAN NOT NULL DEFAULT false,
     profile_picture TEXT NOT NULL DEFAULT ''
+     email_verification_token TEXT
 );
 
 -- Table des publications

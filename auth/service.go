@@ -170,4 +170,3 @@ func (s *AuthService) Login(data *loginPayload) (*string, *models.LoggedInUser, 
 	return &token, userData, nil
 }
 
-

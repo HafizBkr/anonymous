@@ -14,6 +14,7 @@ type errs struct {
 	DuplicateEmail       error
 	AuthenticationFailed error
 	DuplicateUsername    error
+	InvalidToken     error
 }
 
 var Errors = errs{
@@ -37,6 +38,10 @@ var Errors = errs{
 	DuplicateUsername: types.ServiceError{
 			StatusCode: http.StatusConflict,
 			ErrorCode:  Codes.DuplicateUsername,
+	},
+	InvalidToken: types.ServiceError{
+			StatusCode: http.StatusConflict,
+			ErrorCode:  Codes.InvalidToken,
 	},
 	AuthenticationFailed: types.ServiceError{
         StatusCode: http.StatusUnauthorized,

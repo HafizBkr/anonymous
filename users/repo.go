@@ -202,3 +202,19 @@ func (r *UserRepo) SetContactVerified(userId string) error {
 	}
 	return nil
 }
+
+func (r *UserRepo) SetEmailVerificationToken(userID, token string) error {
+    query := `UPDATE users SET email_verification_token = $1 WHERE id = $2`
+    _, err := r.db.Exec(query, token, userID)
+    return err
+}
+
+func (r *UserRepo) GetUserByVerificationToken(token string) (*models.User, error) {
+    var user models.User
+    query := `SELECT * FROM users WHERE email_verification_token = $1`
+    err := r.db.Get(&user, query, token)
+    if err != nil {
+        return nil, err
+    }
+    return &user, nil
+}

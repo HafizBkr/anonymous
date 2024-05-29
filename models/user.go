@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-
-
 type User struct {
     ID             string    `json:"id" db:"id"`
     Email          string    `json:"email" db:"email"`
@@ -15,6 +13,7 @@ type User struct {
     Active         bool      `json:"active" db:"active"`
     ProfilePicture string    `json:"profile_picture" db:"profile_picture"`
     EmailVerified  bool      `json:"email_verified" db:"email_verified"`
+    EmailVerificationToken string `json:"email_verification_token" db:"email_verification_token"`
 }
 
 
