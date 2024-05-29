@@ -1,14 +1,23 @@
 package models
 
-import "time"
+import (
+	"time"
+)
+
+
 
 type User struct {
-    ID            string    `json:"id"`
-    Email         string    `json:"email"`
-    Username      string    `json:"username"`
-    Password      string     `json:"password"`
-    CreatedAt     time.Time `json:"created_at"`
-    Picture       string    `json:"picture"`
-    Active        bool      `json:"active"`           // Champ pour l'état actif/inactif de l'utilisateur
-    ProfilePicture string    `json:"profile_picture"` // Champ pour l'image de profil de l'utilisateur
+    ID             string    `json:"id" db:"id"`
+    Email          string    `json:"email" db:"email"`
+    Username       string    `json:"username" db:"username"`
+    Password       string       `json:"password_hash" db:"password_hash"`
+    JoinedAt       time.Time `json:"joined_at" db:"joined_at"`
+    Active         bool      `json:"active" db:"active"`
+    ProfilePicture string    `json:"profile_picture" db:"profile_picture"`
+    EmailVerified  bool      `json:"email_verified" db:"email_verified"`
+}
+
+
+type LoggedInUser struct {
+	User
 }
