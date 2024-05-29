@@ -1,18 +1,33 @@
 package main
 
-import(
+import (
+	"anonymous/postgres"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"time"
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
-	"os"
-	"net/http"
-	"time"
-	"net"
-	"log"
 )
 func main (){ 
 	godotenv.Load()
 		r := chi.NewRouter()
 		port := os.Getenv("PORT")
+		databse_url := os.Getenv("DB_URL")
+		postgresPool :=postgres.GetconnectionPool(databse_url)
+		rows, err := postgresPool.Queryx("SELECT NOW()")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var currentTime time.Time
+				if err := rows.Scan(&currentTime); err != nil {
+					log.Fatal(err)
+				} 
+				log.Println("Current time from database:", currentTime)
+			}
 	server := http.Server{
 			Addr:         net.JoinHostPort("0.0.0.0", port),
 			Handler:      r,
