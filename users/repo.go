@@ -222,18 +222,18 @@ func (r *UserRepo) GetUserByVerificationToken(token string) (*models.User, error
 
 
 func (r *UserRepo) VerifyEmail(token string) error {
-	user, err := r.GetUserByVerificationToken(token)
-	if err != nil {
-		return fmt.Errorf("Error while retrieving user by verification token: %w", err)
-	}
-	if user.EmailVerified {
-		return fmt.Errorf("Email is already verified")
-	}
-	query := "UPDATE users SET email_verified = true WHERE id = $1"
-	_, err = r.db.Exec(query, user.ID)
-	if err != nil {
-		return fmt.Errorf("Error while setting email to verified: %w", err)
-	}
-	return nil
+    user, err := r.GetUserByVerificationToken(token)
+    if err != nil {
+        return fmt.Errorf("Error while retrieving user by verification token: %w", err)
+    }
+    if user.EmailVerified {
+        return fmt.Errorf("Email is already verified")
+    }
+    query := "UPDATE users SET email_verified = true WHERE id = $1"
+    _, err = r.db.Exec(query, user.ID)
+    if err != nil {
+        return fmt.Errorf("Error while setting email to verified: %w", err)
+    }
+    return nil
 }
 

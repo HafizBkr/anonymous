@@ -90,18 +90,18 @@ func (h *AuthHandler) HandleGetCurrentUserData(w http.ResponseWriter, r *http.Re
 }
 
 func (h *AuthHandler) HandleEmailVerification(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+    token := r.URL.Query().Get("token")
+    if token == "" {
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
 
-	// Call the VerifyEmail method of your service
-	err := h.service.VerifyEmail(token)
-	if err != nil {
-		utils.WriteServiceError(w, err)
-		return
-	}
+    err := h.service.VerifyEmail(token)
+    if err != nil {
+        utils.WriteServiceError(w, err)
+        return
+    }
 
-	return
+    http.Redirect(w, r, "/email-verified.html", http.StatusSeeOther)
 }
+

@@ -85,3 +85,7 @@ func (h *UsersHandler) HandleGetAllUsers(w http.ResponseWriter, r *http.Request)
 		"users": *data,
 	})
 }
+
+
+
+

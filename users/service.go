@@ -63,3 +63,5 @@ func (s *UserService) GetAllUsersData() (*[]models.LoggedInUser, error) {
 	}
 	return data, nil
 }
+
+

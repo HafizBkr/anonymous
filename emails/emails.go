@@ -92,7 +92,7 @@ func (sender *Sender) WritePlainEmail(dest []string, subject, bodyMessage string
 
 // SendVerificationEmail sends a verification email with a provided token
 func (sender Sender) SendVerificationEmail(dest []string, token string) error {
-	verificationLink := fmt.Sprintf("https://blackcat14-cloud.github.io/email_verifiedpage/email_verified.html/verify?token=%s", token)
+	verificationLink := fmt.Sprintf("http://localhost:8080/email-verified.html?token=%s", token)
 	subject := "Please verify your email address"
 	bodyMessage := fmt.Sprintf("Click the following link to verify your email address: <a href=\"%s\">%s</a>", verificationLink, verificationLink)
 	message := sender.WriteHTMLEmail(dest, subject, bodyMessage)
