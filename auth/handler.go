@@ -11,6 +11,7 @@ import (
 type IAuthService interface {
 	Register(*registrationPayload) (*string, *models.LoggedInUser, error)
 	Login(*loginPayload) (*string, *models.LoggedInUser, error)
+	  VerifyEmail(token string) error  
 }
 
 type AuthHandler struct {
@@ -85,5 +86,22 @@ func (h *AuthHandler) HandleGetCurrentUserData(w http.ResponseWriter, r *http.Re
 	utils.WriteData(w, http.StatusOK, map[string]interface{}{
 		"user": *currUser,
 	})
+	return
+}
+
+func (h *AuthHandler) HandleEmailVerification(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// Call the VerifyEmail method of your service
+	err := h.service.VerifyEmail(token)
+	if err != nil {
+		utils.WriteServiceError(w, err)
+		return
+	}
+
 	return
 }

@@ -24,10 +24,10 @@ func (u *UserRepo) MustInsert(tx *sqlx.Tx, user *models.User) error {
 	_, err := tx.NamedExec(
 		`
 		INSERT INTO users (
-    id, email, username, password_hash, active, profile_picture, joined_at , email_verified
+    id, email, username, password_hash, active, profile_picture, joined_at , email_verified , email_verification_token
     )
     VALUES (
-    :id, :email, :username, :password_hash, :active,:profile_picture, :joined_at, :email_verified
+    :id, :email, :username, :password_hash, :active,:profile_picture, :joined_at, :email_verified , :email_verification_token
     );
     `,
 		user,
@@ -119,7 +119,7 @@ func (r *UserRepo) GetUserDataByID(id string) (*models.LoggedInUser, error) {
 	err := r.db.QueryRowx(
 		`
       SELECT
-        id, username, password_hash, email, email_verified, joined_at, active, profile_picture
+        id, username, password_hash, email, email_verified, joined_at, active, profile_picture , email_verification_token
       FROM
         users
       WHERE 
@@ -135,6 +135,7 @@ func (r *UserRepo) GetUserDataByID(id string) (*models.LoggedInUser, error) {
 		&user.JoinedAt,
 		&user.Active,
 		&user.ProfilePicture,
+		&user.EmailVerificationToken,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -218,3 +219,21 @@ func (r *UserRepo) GetUserByVerificationToken(token string) (*models.User, error
     }
     return &user, nil
 }
+
+
+func (r *UserRepo) VerifyEmail(token string) error {
+	user, err := r.GetUserByVerificationToken(token)
+	if err != nil {
+		return fmt.Errorf("Error while retrieving user by verification token: %w", err)
+	}
+	if user.EmailVerified {
+		return fmt.Errorf("Email is already verified")
+	}
+	query := "UPDATE users SET email_verified = true WHERE id = $1"
+	_, err = r.db.Exec(query, user.ID)
+	if err != nil {
+		return fmt.Errorf("Error while setting email to verified: %w", err)
+	}
+	return nil
+}
+

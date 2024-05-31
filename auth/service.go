@@ -23,6 +23,8 @@ type UserRepo interface {
 	GetAllUsersData() (*[]models.LoggedInUser, error)
 	SetContactVerified(userId string) error
 	GetUser(string, string) (*models.User, error)
+	VerifyEmail(token string) error 
+	SetEmailVerificationToken(userID, token string) error
 }
 
 type AuthService struct {
@@ -47,27 +49,28 @@ func Service(
 }
 
 func (s AuthService) Register(data *registrationPayload) (*string, *models.LoggedInUser, error) {
+	resUsername, err := s.users.CheckDuplicatesU(data.Username)
+	if err != nil {
+		s.logger.Error(err.Error())
+		return nil, nil, commons.Errors.InternalServerError
+	}
+	if resUsername == "username" {
+		return nil, nil, commons.Errors.DuplicateUsername
+	}
+
+	resEmail, err := s.users.CheckDuplicates(data.Email)
+	if err != nil {
+		s.logger.Error(err.Error())
+		return nil, nil, commons.Errors.InternalServerError
+	}
+	if resEmail == "email" {
+		return nil, nil, commons.Errors.DuplicateEmail
+	}
+
 	hash, err := helpers.Hash(data.Password)
 	if err != nil {
 		s.logger.Error(err.Error())
 		return nil, nil, commons.Errors.InternalServerError
-	}
-	res, err := s.users.CheckDuplicatesU(data.Username)
-		if err != nil {
-			s.logger.Error(err.Error())
-			return nil, nil, commons.Errors.InternalServerError
-		}
-		if res == "username" {
-			return nil, nil, commons.Errors.DuplicateUsername
-		}
-	
-	result, err := s.users.CheckDuplicates(data.Email)
-	if err != nil {
-		s.logger.Error(err.Error())
-		return nil, nil, commons.Errors.InternalServerError
-	}
-	if result == "email" {
-		return nil, nil, commons.Errors.DuplicateEmail
 	}
 
 	user := &models.User{
@@ -79,32 +82,40 @@ func (s AuthService) Register(data *registrationPayload) (*string, *models.Logge
 		JoinedAt:       time.Now().UTC(),
 		Active:         true,
 		ProfilePicture: "",
+		EmailVerificationToken: uuid.New().String(),
 	}
+
 	tx, err := s.txProvider.Provide()
 	if err != nil {
 		s.logger.Error(err.Error())
 		return nil, nil, commons.Errors.InternalServerError
 	}
-	err = s.users.MustInsert(tx, user)
-	if err != nil {
-		s.logger.Error(err.Error())
-		err = tx.Rollback()
+	defer func() {
 		if err != nil {
-			s.logger.Error(fmt.Sprintf(
-				"Error while rolling back transaction: %s",
-				err,
-			))
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				s.logger.Error(fmt.Sprintf(
+					"Error while rolling back transaction: %s",
+					rollbackErr,
+				))
+			}
 		}
+	}()
+
+	if err := s.users.MustInsert(tx, user); err != nil {
+		s.logger.Error(err.Error())
 		return nil, nil, commons.Errors.InternalServerError
 	}
-	err = tx.Commit()
-	if err != nil {
+
+
+	// Validation de la transaction
+	if err := tx.Commit(); err != nil {
 		s.logger.Error(fmt.Sprintf(
 			"Error while committing transaction: %s",
 			err,
 		))
 		return nil, nil, commons.Errors.InternalServerError
 	}
+
 	token, err := s.jwt.Encode(map[string]interface{}{
 		"id": user.ID,
 	})
@@ -115,13 +126,16 @@ func (s AuthService) Register(data *registrationPayload) (*string, *models.Logge
 		))
 		return nil, nil, commons.Errors.TokenEncodingFailed
 	}
+
 	userData, err := s.users.GetUserDataByID(user.ID)
 	if err != nil {
 		s.logger.Error(err.Error())
 		return nil, nil, commons.Errors.InternalServerError
 	}
+
 	return &token, userData, nil
 }
+
 
 
 func (s *AuthService) Login(data *loginPayload) (*string, *models.LoggedInUser, error) {
@@ -170,3 +184,17 @@ func (s *AuthService) Login(data *loginPayload) (*string, *models.LoggedInUser, 
 	return &token, userData, nil
 }
 
+func (s *AuthService) VerifyEmail(token string) error {
+	err := s.users.VerifyEmail(token)
+	if err != nil {
+		if errors.Is(err, commons.Errors.ResourceNotFound) {
+			return types.ServiceError{
+				StatusCode: http.StatusBadRequest,
+				ErrorCode:  commons.Codes.InvalidVerificationToken,
+			}
+		}
+		s.logger.Error(err.Error())
+		return commons.Errors.InternalServerError
+	}
+	return nil
+}

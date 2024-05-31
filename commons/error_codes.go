@@ -14,7 +14,7 @@ type errorCodes struct {
 	DuplicateEmail string
   DuplicateLabel string
   InvalidToken string
-	
+	InvalidVerificationToken string
 }
 
 var Codes = errorCodes{
@@ -27,4 +27,5 @@ var Codes = errorCodes{
     DuplicateUsername : "DuplicateUsername",
     UsernameNotFound: "UsernameNotFound",
     InvalidToken: "InvalidToken",
+    InvalidVerificationToken: "InvalidVerificationToken",
 }

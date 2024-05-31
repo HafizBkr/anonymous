@@ -1,12 +1,10 @@
-package handler
+package email
 
 import (
 	"bytes"
 	"fmt"
 	"mime/quotedprintable"
-	"net/http"
 	"net/smtp"
-	"os"
 	"strings"
 )
 
@@ -35,7 +33,6 @@ func (sender Sender) SendMail(Dest []string, Subject, bodyMessage string) {
 		sender.User, Dest, []byte(msg))
 
 	if err != nil {
-
 		fmt.Printf("smtp error: %s", err)
 		return
 	}
@@ -44,18 +41,10 @@ func (sender Sender) SendMail(Dest []string, Subject, bodyMessage string) {
 }
 
 func (sender Sender) WriteEmail(dest []string, contentType, subject, bodyMessage string) string {
-
 	header := make(map[string]string)
 	header["From"] = sender.User
-
-	receipient := ""
-
-	for _, user := range dest {
-		receipient = receipient + user
-	}
-
-	// header["To"] = receipient
-	// header["Subject"] = subject
+	header["To"] = strings.Join(dest, ",")
+	header["Subject"] = subject
 	header["MIME-Version"] = "1.0"
 	header["Content-Type"] = fmt.Sprintf("%s; charset=\"utf-8\"", contentType)
 	header["Content-Transfer-Encoding"] = "quoted-printable"
@@ -68,7 +57,6 @@ func (sender Sender) WriteEmail(dest []string, contentType, subject, bodyMessage
 	}
 
 	var encodedMessage bytes.Buffer
-
 	finalMessage := quotedprintable.NewWriter(&encodedMessage)
 	finalMessage.Write([]byte(bodyMessage))
 	finalMessage.Close()
@@ -79,22 +67,9 @@ func (sender Sender) WriteEmail(dest []string, contentType, subject, bodyMessage
 }
 
 func (sender *Sender) WriteHTMLEmail(dest []string, subject, bodyMessage string) string {
-
 	return sender.WriteEmail(dest, "text/html", subject, bodyMessage)
 }
 
 func (sender *Sender) WritePlainEmail(dest []string, subject, bodyMessage string) string {
-
 	return sender.WriteEmail(dest, "text/plain", subject, bodyMessage)
-}
-
-func Handler(w http.ResponseWriter, r *http.Request) {
-  senderEmail := os.Getenv("SENDER_EMAIL")
-  appPassword := os.Getenv("APP_PASSWORD")
-	sender := NewSender(senderEmail, appPassword)
-	receiver := []string{"hamanecisse2@gmail.com"}
-	body := sender.WritePlainEmail(receiver, "Alerte", "Seul atteint")
-	sender.SendMail(receiver, "Alerte", body)
-	w.WriteHeader(http.StatusOK)
-	return
 }
