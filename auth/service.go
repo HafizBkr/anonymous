@@ -4,11 +4,12 @@ import (
 	"anonymous/helpers"
 	"anonymous/models"
 	"anonymous/types"
+	"anonymous/emails"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
-
+     "os"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -72,7 +73,9 @@ func (s AuthService) Register(data *registrationPayload) (*string, *models.Logge
 		s.logger.Error(err.Error())
 		return nil, nil, commons.Errors.InternalServerError
 	}
+	verificationToken := uuid.New().String()
 
+   
 	user := &models.User{
 		ID:             uuid.NewString(),
 		Username:       data.Username,
@@ -82,8 +85,20 @@ func (s AuthService) Register(data *registrationPayload) (*string, *models.Logge
 		JoinedAt:       time.Now().UTC(),
 		Active:         true,
 		ProfilePicture: "",
-		EmailVerificationToken: uuid.New().String(),
+		EmailVerificationToken: verificationToken,
 	}
+	
+ // Enregistrement du token de vérification dans la base de données
+    if err := s.users.SetEmailVerificationToken(user.ID, verificationToken); err != nil {
+        s.logger.Error(err.Error())
+        return nil, nil, commons.Errors.InternalServerError
+    }
+    
+    email := os.Getenv("EMAIL")
+    password := os.Getenv("PASSWORD")
+       sender := emails.NewSender(email, password)
+        sender.SendVerificationEmail([]string{data.Email}, user.EmailVerificationToken)
+
 
 	tx, err := s.txProvider.Provide()
 	if err != nil {
@@ -126,7 +141,7 @@ func (s AuthService) Register(data *registrationPayload) (*string, *models.Logge
 		))
 		return nil, nil, commons.Errors.TokenEncodingFailed
 	}
-
+	
 	userData, err := s.users.GetUserDataByID(user.ID)
 	if err != nil {
 		s.logger.Error(err.Error())

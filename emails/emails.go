@@ -1,4 +1,4 @@
-package email
+package emails
 
 import (
 	"bytes"
@@ -22,15 +22,30 @@ func NewSender(username, password string) Sender {
 	}
 }
 
-func (sender Sender) SendMail(Dest []string, Subject, bodyMessage string) {
+func (sender Sender) SendMail(dest []string, subject, bodyMessage string) {
+	header := make(map[string]string)
+	header["From"] = sender.User
+	header["To"] = strings.Join(dest, ",")
+	header["Subject"] = subject
+	header["MIME-Version"] = "1.0"
+	header["Content-Type"] = "text/plain; charset=utf-8"
+	header["Content-Transfer-Encoding"] = "quoted-printable"
 
-	msg := "From: " + sender.User + "\n" +
-		"To: " + strings.Join(Dest, ",") + "\n" +
-		"Subject: " + Subject + "\n" + bodyMessage
+	message := ""
+	for key, value := range header {
+		message += fmt.Sprintf("%s: %s\r\n", key, value)
+	}
+
+	var encodedMessage bytes.Buffer
+	finalMessage := quotedprintable.NewWriter(&encodedMessage)
+	finalMessage.Write([]byte(bodyMessage))
+	finalMessage.Close()
+
+	message += "\r\n" + encodedMessage.String()
 
 	err := smtp.SendMail(SMTPServer+":587",
 		smtp.PlainAuth("", sender.User, sender.Password, SMTPServer),
-		sender.User, Dest, []byte(msg))
+		sender.User, dest, []byte(message))
 
 	if err != nil {
 		fmt.Printf("smtp error: %s", err)
@@ -51,7 +66,6 @@ func (sender Sender) WriteEmail(dest []string, contentType, subject, bodyMessage
 	header["Content-Disposition"] = "inline"
 
 	message := ""
-
 	for key, value := range header {
 		message += fmt.Sprintf("%s: %s\r\n", key, value)
 	}
@@ -72,4 +86,12 @@ func (sender *Sender) WriteHTMLEmail(dest []string, subject, bodyMessage string)
 
 func (sender *Sender) WritePlainEmail(dest []string, subject, bodyMessage string) string {
 	return sender.WriteEmail(dest, "text/plain", subject, bodyMessage)
+}
+
+func (sender Sender) SendVerificationEmail(dest []string, token string) {
+	verificationLink := "http://yourdomain.com/verify?token=" + token
+	subject := "Please verify your email address"
+	bodyMessage := fmt.Sprintf("Click the following link to verify your email address: <a href=\"%s\">%s</a>", verificationLink, verificationLink)
+	message := sender.WriteEmail(dest, "text/html", subject, bodyMessage)
+	sender.SendMail(dest, subject, message)
 }
