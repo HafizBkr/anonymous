@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
 	"anonymous/users"
@@ -39,13 +38,17 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.HandleRegistration)
 		r.Post("/login", authHandler.HandleLogin)
-		r.Get("/verify-email/verify", authHandler.HandleEmailVerification) // Gestionnaire pour le lien de vérification dans l'e-mail/ Ajoutez cette ligne pour gérer la vérification de l'e-mail
+		r.Get("/verify-email", authHandler.HandleEmailVerification) // Gestionnaire pour le lien de vérification dans l'e-mail/ Ajoutez cette ligne pour gérer la vérification de l'e-mail
 	})
 	r.Route("/users", func(r chi.Router) {
 		r.Patch("/password", userHandler.HandleChangePassword)
 		r.Get("/", userHandler.HandleGetAllUsers)
 		r.Patch("/status", userHandler.HandleToggleStatus)
 	})
+	
+	staticDir := "./static"
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
+
 
 	server := http.Server{
 		Addr:         net.JoinHostPort("0.0.0.0", port),

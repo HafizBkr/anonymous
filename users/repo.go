@@ -186,6 +186,7 @@ func (r *UserRepo) GetAllUsersData() (*[]models.LoggedInUser, error) {
 			&user.JoinedAt,
 			&user.Active,
 			&user.ProfilePicture,
+			&user.EmailVerificationToken,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("Error while retrieving users data: error while scanning row: %w", err)
@@ -219,21 +220,63 @@ func (r *UserRepo) GetUserByVerificationToken(token string) (*models.User, error
     }
     return &user, nil
 }
-
-
-func (r *UserRepo) VerifyEmail(token string) error {
-    user, err := r.GetUserByVerificationToken(token)
-    if err != nil {
-        return fmt.Errorf("Error while retrieving user by verification token: %w", err)
-    }
-    if user.EmailVerified {
-        return fmt.Errorf("Email is already verified")
-    }
-    query := "UPDATE users SET email_verified = true WHERE id = $1"
-    _, err = r.db.Exec(query, user.ID)
-    if err != nil {
-        return fmt.Errorf("Error while setting email to verified: %w", err)
-    }
-    return nil
+func (r *UserRepo) Update(user *models.User) error {
+	query := `
+		UPDATE users
+		SET email_verified = $1, email_verification_token = $2
+		WHERE id = $3
+	`
+	_, err := r.db.Exec(query, user.EmailVerified, user.EmailVerificationToken, user.ID)
+	if err != nil {
+		return fmt.Errorf("could not update user: %w", err)
+	}
+	return nil
 }
 
+// FindByVerificationToken finds a user by their email verification token.
+func (r *UserRepo) FindByVerificationToken(token string) (*models.User, error) {
+	query := `
+		SELECT id, email, username, password_hash, joined_at, active, profile_picture, email_verified, email_verification_token
+		FROM users
+		WHERE email_verification_token = $1
+	`
+	var user models.User
+	err := r.db.QueryRow(query, token).Scan(
+		&user.ID, &user.Email, &user.Username, &user.Password, &user.JoinedAt, &user.Active,
+		&user.ProfilePicture, &user.EmailVerified, &user.EmailVerificationToken,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, commons.Errors.ResourceNotFound
+		}
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	return &user, nil
+}
+
+func (r *UserRepo) VerifyEmail(token string) error {
+	var user models.User
+
+	// Find the user by the verification token
+	query := `SELECT * FROM users WHERE email_verification_token = $1`
+	err := r.db.Get(&user, query, token)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return commons.Errors.ResourceNotFound
+		}
+		return fmt.Errorf("could not find user by verification token: %w", err)
+	}
+	user.EmailVerified = true
+	user.EmailVerificationToken = ""
+	query = `
+        UPDATE users
+        SET email_verified = $1, email_verification_token = $2
+        WHERE id = $3
+    `
+	_, err = r.db.Exec(query, user.EmailVerified, user.EmailVerificationToken, user.ID)
+	if err != nil {
+		return fmt.Errorf("could not update user: %w", err)
+	}
+
+	return nil
+}

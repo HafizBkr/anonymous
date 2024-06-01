@@ -26,6 +26,8 @@ type UserRepo interface {
 	GetUser(string, string) (*models.User, error)
 	VerifyEmail(token string) error 
 	SetEmailVerificationToken(userID, token string) error
+	FindByVerificationToken(token string) (*models.User, error)
+	Update(user *models.User) error
 }
 
 type AuthService struct {
@@ -175,6 +177,15 @@ func (s *AuthService) Login(data *loginPayload) (*string, *models.LoggedInUser, 
 		s.logger.Error(err.Error())
 		return nil, nil, commons.Errors.InternalServerError
 	}
+
+	// Vérifier si l'e-mail de l'utilisateur est vérifié
+	if !user.EmailVerified {
+		return nil, nil, types.ServiceError{
+			StatusCode: http.StatusUnauthorized,
+			ErrorCode:  commons.Codes.EmailNotVerified,
+		}
+	}
+
 	if !helpers.HashMatchesString(user.Password, data.Password) {
 		return nil, nil, types.ServiceError{
 			StatusCode: http.StatusBadRequest,

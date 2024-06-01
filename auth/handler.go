@@ -6,6 +6,7 @@ import (
 	"anonymous/utils"
 	"encoding/json"
 	"net/http"
+	"anonymous/types"
 )
 
 type IAuthService interface {
@@ -93,15 +94,28 @@ func (h *AuthHandler) HandleEmailVerification(w http.ResponseWriter, r *http.Req
     token := r.URL.Query().Get("token")
     if token == "" {
         w.WriteHeader(http.StatusBadRequest)
+        w.Write([]byte("Token manquant"))
         return
     }
 
     err := h.service.VerifyEmail(token)
     if err != nil {
-        utils.WriteServiceError(w, err)
+        if serr, ok := err.(types.ServiceError); ok {
+            // Si l'erreur est de type ServiceError, nous pouvons extraire le statut HTTP et le code d'erreur
+            utils.WriteServiceError(w, serr)
+            return
+        }
+        // Si ce n'est pas une erreur de service spécifique, nous pouvons simplement renvoyer une erreur interne du serveur
+        utils.WriteServiceError(w, types.ServiceError{
+            StatusCode: http.StatusInternalServerError,
+            ErrorCode:  "InternalError",
+        })
         return
     }
 
-    http.Redirect(w, r, "/email-verified.html", http.StatusSeeOther)
+    // Rediriger vers la page verified.html après la vérification réussie
+    http.Redirect(w, r, "/static/verified.html", http.StatusSeeOther)
 }
+
+
 
