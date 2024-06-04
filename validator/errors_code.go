@@ -4,3 +4,4 @@ const (
 	ErrEmptyField = "EmptyField"
 	ErrInvalidField = "InvalidField"
 )
+

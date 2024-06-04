@@ -17,4 +17,5 @@ type Logger interface {
 type JWTProvider interface {
 	Encode(claims map[string]interface{}) (string, error)
 	Decode(token string) (map[string]interface{}, error)
+	 ValidateToken(tokenString string) (string, error)
 }

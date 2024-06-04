@@ -1,18 +1,22 @@
 package main
 
 import (
+	"anonymous/auth"
+	"anonymous/middleware"
 	"anonymous/postgres"
+	"anonymous/posts"
+	"anonymous/provider"
+	"anonymous/users"
 	"log"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"time"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
-	"anonymous/users"
-	"anonymous/auth"
-	"anonymous/provider"
 )
 
 func main() {
@@ -26,14 +30,24 @@ func main() {
 	}))
 	jwtProvider := providers.NewJWTProvider()
 	txProvider := providers.NewTransactionProvider(postgresPool)
-
+	r.Use(
+		middleware.Logger,
+		middleware.Recoverer,
+	)
 	usersRepo := users.Repo(postgresPool)
+	authMiddleware := middlewares.NewAuthMiddleware(usersRepo, jwtProvider, logger)
+	postRepo := posts.NewPostRepo(postgresPool)
 
 	authService := auth.Service(usersRepo, txProvider, logger, jwtProvider)
 	userService := users.Service(usersRepo, txProvider, logger)
+	postService := posts.NewPostService(postRepo , *authService )
+
+
 
 	authHandler := auth.NewAuthHandler(authService, logger)
 	userHandler := users.Handler(userService, logger)
+	postHandler := posts.CreatePostHandler(postService)
+
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.HandleRegistration)
@@ -45,6 +59,12 @@ func main() {
 		r.Get("/", userHandler.HandleGetAllUsers)
 		r.Patch("/status", userHandler.HandleToggleStatus)
 	})
+	
+ r.Route("/posts", func(r chi.Router) {
+        r.Use(authMiddleware.MiddlewareHandler)
+        r.Post("/", postHandler)
+        // Ajoute d'autres routes liées aux posts ici
+    })
 	
 	staticDir := "./static"
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))

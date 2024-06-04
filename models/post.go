@@ -3,10 +3,12 @@ package models
 import "time"
 
 type Post struct {
-    ID          string    `json:"id"`
-    UserID      string    `json:"user_id"`
-    ContentType string    `json:"content_type"`
-    Content     string    `json:"content"`
-    Description string    `json:"description"` 
-    CreatedAt   time.Time `json:"created_at"`
+    ID            string    `json:"id" db:"id"`
+    UserID        string    `json:"user_id" db:"user_id"`
+    ContentType   string    `json:"content_type" db:"content_type"`
+    Content       string    `json:"content" db:"content"`
+    Description   string    `json:"description" db:"description"`
+    CreatedAt     time.Time `json:"created_at" db:"created_at"`
+    LikesCount    int       `json:"likes_count" db:"likes_count"`         // Nombre total de likes
+    CommentsCount int       `json:"comments_count" db:"comments_count"`   // Nombre total de commentaires
 }

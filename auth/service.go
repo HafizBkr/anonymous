@@ -224,3 +224,11 @@ func (s *AuthService) VerifyEmail(token string) error {
 	}
 	return nil
 }
+
+func (s *AuthService) ValidateToken(tokenString string) (string, error) {
+    userID, err := s.jwt.ValidateToken(tokenString)
+    if err != nil {
+        return "", err
+    }
+    return userID, nil
+}
