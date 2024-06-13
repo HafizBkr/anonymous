@@ -3,6 +3,7 @@ package posts
 import "anonymous/validator"
 
 type PostPayload struct {
+    ID          string `json:"id"`          // Ajout de l'ID
     UserID      string `json:"user_id"`
     ContentType string `json:"content_type"`
     Content     string `json:"content"`
@@ -20,6 +21,5 @@ func (p *PostPayload) Validate() map[string]string {
     if validator.IsEmptyString(p.Content) {
         err["content"] = "Content is required"
     }
-    // You can add more validations here if needed
     return err
 }

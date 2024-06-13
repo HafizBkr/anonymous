@@ -82,7 +82,7 @@ func (s AuthService) Register(data *registrationPayload) (*string, *models.Logge
 		ID:             uuid.NewString(),
 		Username:       data.Username,
 		Password:       hash,
-		Email:          data.Email,
+		Email:          data.Email, 
 		EmailVerified:  false,
 		JoinedAt:       time.Now().UTC(),
 		Active:         true,

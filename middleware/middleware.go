@@ -8,20 +8,16 @@ import (
 	"anonymous/auth"
 	"anonymous/types"
 )
-
-// ContextKey est la clé pour stocker les valeurs dans le contexte de la requête
 type ContextKey string
 
 const ContextKeyUser ContextKey = "user"
 
-// AuthMiddleware est un middleware qui vérifie l'authentification de l'utilisateur
 type AuthMiddleware struct {
 	users  auth.UserRepo
 	jwt    types.JWTProvider
 	logger types.Logger
 }
 
-// NewAuthMiddleware crée une nouvelle instance de AuthMiddleware
 func NewAuthMiddleware(
 	users auth.UserRepo,
 	jwt types.JWTProvider,
@@ -33,8 +29,6 @@ func NewAuthMiddleware(
 		logger: logger,
 	}
 }
-
-// MiddlewareHandler est un middleware qui vérifie l'authentification de l'utilisateur via le jeton JWT
 func (m *AuthMiddleware) MiddlewareHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
@@ -68,8 +62,6 @@ func (m *AuthMiddleware) MiddlewareHandler(next http.Handler) http.Handler {
 			http.Error(w, "Utilisateur inactif", http.StatusForbidden)
 			return
 		}
-
-		// Stocke l'utilisateur dans le contexte de la requête
 		ctx := context.WithValue(r.Context(), ContextKeyUser, user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

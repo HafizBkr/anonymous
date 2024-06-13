@@ -2,6 +2,7 @@ package main
 
 import (
 	"anonymous/auth"
+	"anonymous/comments"
 	"anonymous/middleware"
 	"anonymous/postgres"
 	"anonymous/posts"
@@ -37,17 +38,30 @@ func main() {
 	usersRepo := users.Repo(postgresPool)
 	authMiddleware := middlewares.NewAuthMiddleware(usersRepo, jwtProvider, logger)
 	postRepo := posts.NewPostRepo(postgresPool)
+	commentRepo := comments.NewCommentRepo(postgresPool)
 
 	authService := auth.Service(usersRepo, txProvider, logger, jwtProvider)
 	userService := users.Service(usersRepo, txProvider, logger)
 	postService := posts.NewPostService(postRepo , *authService )
+	commentService := comments.NewCommentService(commentRepo, *authService )
 
 
 
 	authHandler := auth.NewAuthHandler(authService, logger)
 	userHandler := users.Handler(userService, logger)
 	postHandler := posts.CreatePostHandler(postService)
-
+	getPostHandler :=posts.DeletePostHandler(postService)
+	updatePostHandler :=posts.DeletePostHandler(postService)
+	deletePostHandler :=posts.DeletePostHandler(postService)
+	createCommentsHandler := comments.CreateCommentHandler(commentService)
+	updateCommentHandler := comments.UpdateCommentHandler(commentService)
+	getCommentByPostHandler := comments.GetCommentsByPostIDHandler(commentService)
+	getCommentHandler := comments.GetCommentHandler(commentService)
+	deleteCommentHandler := comments.DeleteCommentHandler(commentService)
+	
+	
+	
+	
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.HandleRegistration)
@@ -60,11 +74,22 @@ func main() {
 		r.Patch("/status", userHandler.HandleToggleStatus)
 	})
 	
- r.Route("/posts", func(r chi.Router) {
+	r.Route("/posts", func(r chi.Router) {
         r.Use(authMiddleware.MiddlewareHandler)
         r.Post("/", postHandler)
-        // Ajoute d'autres routes liées aux posts ici
+        r.Get("/{id}", getPostHandler)
+        r.Patch("/{id}", updatePostHandler)
+        r.Delete("/{id}", deletePostHandler)
     })
+	
+	r.Route("/{postID}/comments", func(r chi.Router) {
+		r.Use(authMiddleware.MiddlewareHandler)
+				r.Post("/", createCommentsHandler)
+				r.Get("/", getCommentByPostHandler)
+				r.Get("/{commentID}", getCommentHandler)
+				r.Patch("/{commentID}", updateCommentHandler)
+				r.Delete("/{commentID}", deleteCommentHandler)
+ })
 	
 	staticDir := "./static"
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))

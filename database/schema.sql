@@ -22,14 +22,15 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 -- Table des commentaires
-CREATE TABLE IF NOT EXISTS comments (
-    id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id),
-    post_id INTEGER REFERENCES posts(id),
-    content_type TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE comments (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    content_type text NOT NULL,
+    content text NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
 );
+
 
 -- Table des réponses aux commentaires
 CREATE TABLE IF NOT EXISTS comment_replies (
@@ -50,3 +51,4 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
