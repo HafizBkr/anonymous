@@ -66,3 +66,4 @@ func (m *AuthMiddleware) MiddlewareHandler(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
