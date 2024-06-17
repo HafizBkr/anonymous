@@ -5,12 +5,13 @@ import (
     "fmt"
     "github.com/jmoiron/sqlx"
     "time"
+    "database/sql"
 )
 
 type CommentRepo interface {
     CreateComment(payload *CommentPayload) (*models.Comment, error)
     GetComment(id string) (*models.Comment, error)
-    UpdateComment(id string, payload *CommentPayload) (*models.Comment, error)
+   UpdateComment(id string, payload *UpdateCommentPayload, userID string) (*models.Comment, error) 
     DeleteComment(userID string, id string) error
     GetCommentsByPostID(postID string) ([]*models.Comment, error)
 }
@@ -69,37 +70,105 @@ func (r *commentRepo) GetComment(id string) (*models.Comment, error) {
     return &comment, nil
 }
 
-func (r *commentRepo) UpdateComment(id string, payload *CommentPayload) (*models.Comment, error) {
+func (r *commentRepo) UpdateComment(id string, payload *UpdateCommentPayload, userID string) (*models.Comment, error) {
+    // Valider le payload de mise à jour
     if validationErrors := payload.Validate(); len(validationErrors) > 0 {
         return nil, fmt.Errorf("validation error: %v", validationErrors)
     }
 
-    comment := &models.Comment{
-        ID:          id,
-        UserID:      payload.UserID,
-        PostID:      payload.PostID,
-        ContentType: payload.ContentType,
-        Content:     payload.Content,
+    // Vérifier si l'utilisateur est l'auteur du commentaire
+    commentUserID, err := r.GetCommentUserID(id)
+    if err != nil {
+        return nil, fmt.Errorf("error verifying comment ownership: %w", err)
     }
 
+    if commentUserID != userID {
+        return nil, fmt.Errorf("unauthorized: you are not the owner of this comment")
+    }
+
+    // Construire la structure de commentaire mise à jour
+    comment := &models.Comment{
+        ID:      id,
+        Content: payload.Content,
+    }
+
+    // Requête SQL pour mettre à jour le commentaire
     query := `
-        UPDATE comments SET content_type = $1, content = $2
-        WHERE id = $3 AND user_id = $4
+        UPDATE comments
+        SET content = $1
+        WHERE id = $2
         RETURNING id, user_id, post_id, content_type, content, created_at
     `
-    err := r.db.QueryRow(query, comment.ContentType, comment.Content, comment.ID, comment.UserID).Scan(
+
+    // Exécuter la requête SQL et scanner les résultats dans la structure de commentaire
+    err = r.db.QueryRow(query, comment.Content, comment.ID).Scan(
         &comment.ID, &comment.UserID, &comment.PostID, &comment.ContentType, &comment.Content, &comment.CreatedAt)
     if err != nil {
         return nil, fmt.Errorf("error updating comment: %w", err)
     }
+
     return comment, nil
 }
 
-func (r *commentRepo) DeleteComment(userID string, id string) error {
-    query := "DELETE FROM comments WHERE id = $1 AND user_id = $2"
-    _, err := r.db.Exec(query, id, userID)
+
+func (r *commentRepo) GetCommentUserID(commentID string) (string, error) {
+    var userID string
+    query := "SELECT user_id FROM comments WHERE id = $1"
+    err := r.db.Get(&userID, query, commentID)
+    if err != nil {
+        return "", fmt.Errorf("error getting comment user ID: %w", err)
+    }
+    return userID, nil
+}
+
+func (r *commentRepo) DeleteComment(userID string, commentID string) error {
+    // Vérifier si le commentaire existe et obtenir les détails
+    comment, err := r.GetCommentDetails(commentID)
+    if err != nil {
+        return err
+    }
+
+    // Obtenir l'ID du propriétaire du post
+    postUserID, err := r.GetPostUserID(comment.PostID)
+    if err != nil {
+        return err
+    }
+
+    // Vérifier si l'utilisateur authentifié est l'auteur du commentaire ou le propriétaire du post
+    if userID != comment.UserID && userID != postUserID {
+        return fmt.Errorf("unauthorized: you do not have permission to delete this comment")
+    }
+
+    // Supprimer le commentaire
+    deleteQuery := "DELETE FROM comments WHERE id = $1"
+    _, err = r.db.Exec(deleteQuery, commentID)
     if err != nil {
         return fmt.Errorf("error deleting comment: %w", err)
     }
     return nil
+}
+
+
+func (r *commentRepo) GetPostUserID(postID string) (string, error) {
+    var userID string
+    query := "SELECT user_id FROM posts WHERE id = $1"
+    err := r.db.Get(&userID, query, postID)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return "", fmt.Errorf("post not found")
+        }
+        return "", fmt.Errorf("error getting post user ID: %w", err)
+    }
+    return userID, nil
+}
+
+
+func (r *commentRepo) GetCommentDetails(commentID string) (*models.Comment, error) {
+    var comment models.Comment
+    query := "SELECT id, user_id, post_id FROM comments WHERE id = $1"
+    err := r.db.Get(&comment, query, commentID)
+    if err != nil {
+        return nil, fmt.Errorf("error getting comment details: %w", err)
+    }
+    return &comment, nil
 }

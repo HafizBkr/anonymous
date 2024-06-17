@@ -5,6 +5,10 @@ import (
     "net/http"
     "github.com/go-chi/chi/v5"
     "github.com/go-chi/render"
+    "fmt"
+    "strings"
+    
+    
 )
 
 func CreateCommentHandler(service CommentService) http.HandlerFunc {
@@ -67,37 +71,33 @@ func GetCommentHandler(service CommentService) http.HandlerFunc {
 
 func UpdateCommentHandler(service CommentService) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
-        token := r.Header.Get("Authorization")
-        if token == "" {
+        authHeader := r.Header.Get("Authorization")
+        if authHeader == "" {
             http.Error(w, "Unauthorized", http.StatusUnauthorized)
             return
         }
 
+        token := strings.TrimPrefix(authHeader, "Bearer ")
         commentID := chi.URLParam(r, "commentID")
-        postID := chi.URLParam(r, "postID") // Récupérer l'ID du post depuis l'URL
 
-        var payload CommentPayload
+        var payload UpdateCommentPayload
         if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
             http.Error(w, "Invalid request payload", http.StatusBadRequest)
             return
         }
-        payload.PostID = postID
 
-        // Validate the payload
         if validationErrs := payload.Validate(); len(validationErrs) > 0 {
-            w.WriteHeader(http.StatusBadRequest)
-            json.NewEncoder(w).Encode(validationErrs)
+            http.Error(w, fmt.Sprintf("Validation error: %v", validationErrs), http.StatusBadRequest)
             return
         }
 
-        // Proceed with updating the comment
-        comment, err := service.UpdateComment(token, commentID, &payload)
+        updatedComment, err := service.UpdateComment(token, commentID, &payload)
         if err != nil {
-            http.Error(w, err.Error(), http.StatusInternalServerError)
+            http.Error(w, fmt.Sprintf("Error updating comment: %v", err), http.StatusInternalServerError)
             return
         }
 
-        render.JSON(w, r, comment)
+        render.JSON(w, r, updatedComment)
     }
 }
 
@@ -105,14 +105,29 @@ func UpdateCommentHandler(service CommentService) http.HandlerFunc {
 
 func DeleteCommentHandler(service CommentService) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
-        token := r.Header.Get("Authorization")
-        if token == "" {
+        authHeader := r.Header.Get("Authorization")
+        if authHeader == "" {
             http.Error(w, "Unauthorized", http.StatusUnauthorized)
             return
         }
 
+        token := strings.TrimPrefix(authHeader, "Bearer ")
         commentID := chi.URLParam(r, "commentID")
-        if err := service.DeleteComment(token, commentID); err != nil {
+
+        err := service.DeleteComment(token, commentID)
+        if err != nil {
+            if err.Error() == "comment not found" {
+                http.Error(w, "Comment not found", http.StatusNotFound)
+                return
+            }
+            if err.Error() == "post not found" {
+                http.Error(w, "Post not found", http.StatusNotFound)
+                return
+            }
+            if err.Error() == "unauthorized: you do not have permission to delete this comment" {
+                http.Error(w, "Unauthorized", http.StatusUnauthorized)
+                return
+            }
             http.Error(w, err.Error(), http.StatusInternalServerError)
             return
         }
@@ -120,3 +135,5 @@ func DeleteCommentHandler(service CommentService) http.HandlerFunc {
         w.WriteHeader(http.StatusNoContent)
     }
 }
+
+

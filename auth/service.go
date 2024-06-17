@@ -122,9 +122,7 @@ func (s AuthService) Register(data *registrationPayload) (*string, *models.Logge
 		s.logger.Error(err.Error())
 		return nil, nil, commons.Errors.InternalServerError
 	}
-
-
-	// Validation de la transaction
+	
 	if err := tx.Commit(); err != nil {
 		s.logger.Error(fmt.Sprintf(
 			"Error while committing transaction: %s",

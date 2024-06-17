@@ -19,4 +19,5 @@ type User struct {
 
 type LoggedInUser struct {
 	User
+	Token string `json:"token"`
 }

@@ -15,6 +15,8 @@ type errs struct {
 	AuthenticationFailed error
 	DuplicateUsername    error
 	InvalidToken     error
+	Forbidden     error
+	BadRequest error
 }
 
 var Errors = errs{
@@ -47,4 +49,12 @@ var Errors = errs{
         StatusCode: http.StatusUnauthorized,
         ErrorCode:  "AuthenticationFailed",
     },
+   	Forbidden: types.ServiceError{
+           StatusCode: http.StatusUnauthorized,
+           ErrorCode:  "Forbidden",
+       },
+      	BadRequest: types.ServiceError{
+                StatusCode: http.StatusUnauthorized,
+                ErrorCode:  "BadRequest",
+            },
 }

@@ -2,6 +2,8 @@ package comments
 
 import (
     "github.com/google/uuid"
+    "anonymous/validator"
+    "anonymous/commons"
 )
 
 type CommentPayload struct {
@@ -9,6 +11,19 @@ type CommentPayload struct {
     UserID      string `json:"user_id"`
     ContentType string `json:"content_type"`
     Content     string `json:"content"`
+}
+
+type UpdateCommentPayload struct {
+	Content string `json:"content"`
+}
+
+func (p *UpdateCommentPayload) Validate() (err map[string]string)  { 
+	err = map[string]string{}
+		if validator.IsEmptyString(p.Content) {
+			err["label"] = commons.Codes.EmptyField
+			return
+		}
+		return nil
 }
 
 func (p *CommentPayload) Validate() map[string]string {

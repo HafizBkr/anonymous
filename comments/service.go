@@ -10,7 +10,7 @@ import (
 type CommentService interface {
     CreateComment(token string, payload *CommentPayload) (*models.Comment, error)
     GetComment(id string) (*models.Comment, error)
-    UpdateComment(token string, id string, payload *CommentPayload) (*models.Comment, error)
+    UpdateComment(token string,  id string, payload *UpdateCommentPayload) (*models.Comment, error)
     DeleteComment(token string, id string) error
     GetCommentsByPostID(postID string) ([]*models.Comment, error)
 }
@@ -50,25 +50,24 @@ func (s *commentService) GetComment(id string) (*models.Comment, error) {
     return s.repo.GetComment(id)
 }
 
-func (s *commentService) UpdateComment(token string, id string, payload *CommentPayload) (*models.Comment, error) {
+func (s *commentService) UpdateComment(token string, id string, payload *UpdateCommentPayload) (*models.Comment, error) {
     userID, err := s.authService.ValidateToken(token)
     if err != nil {
         return nil, commons.Errors.AuthenticationFailed
     }
-    payload.UserID = userID
 
     if err := validator.ValidateStruct(payload); err != nil {
         return nil, err
     }
 
-    return s.repo.UpdateComment(id, payload)
+    return s.repo.UpdateComment(id, payload, userID)
 }
 
-func (s *commentService) DeleteComment(token string, id string) error {
+func (s *commentService) DeleteComment(token string, commentID string) error {
     userID, err := s.authService.ValidateToken(token)
     if err != nil {
         return commons.Errors.AuthenticationFailed
     }
 
-    return s.repo.DeleteComment(userID, id)
+    return s.repo.DeleteComment(userID, commentID)
 }
