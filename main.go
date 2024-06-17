@@ -42,14 +42,20 @@ func main() {
 
 	authService := auth.Service(usersRepo, txProvider, logger, jwtProvider)
 	userService := users.Service(usersRepo, txProvider, logger)
-	postService := posts.NewPostService(postRepo , *authService )
+	postService := posts.NewPostService(postRepo, *authService )
 	commentService := comments.NewCommentService(commentRepo, *authService )
 
 
 
 	authHandler := auth.NewAuthHandler(authService, logger)
 	userHandler := users.Handler(userService, logger)
-	postHandler := posts.CreatePostHandler(postService)
+	
+	createPostHandler := posts.CreatePostHandler(postService)
+	getAllPostsHandler :=posts.GetAllPostsHandler(postService)
+	getPostByUserHAndler :=posts.GetPostsByUserHandler(postService)
+	updatePostHAndler := posts.UpdatePostHandler(postService)
+	deletePostHandler := posts.DeletePostHandler(postService)
+	
 	createCommentsHandler := comments.CreateCommentHandler(commentService)
 	updateCommentHandler := comments.UpdateCommentHandler(commentService)
 	getCommentByPostHandler := comments.GetCommentsByPostIDHandler(commentService)
@@ -63,7 +69,7 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.HandleRegistration)
 		r.Post("/login", authHandler.HandleLogin)
-		r.Get("/verify-email", authHandler.HandleEmailVerification) // Gestionnaire pour le lien de vérification dans l'e-mail/ Ajoutez cette ligne pour gérer la vérification de l'e-mail
+		r.Get("/verify-email", authHandler.HandleEmailVerification)
 	})
 	r.Route("/users", func(r chi.Router) {
 		r.Patch("/password", userHandler.HandleChangePassword)
@@ -72,9 +78,13 @@ func main() {
 	})
 	
 	r.Route("/posts", func(r chi.Router) {
-        r.Use(authMiddleware.MiddlewareHandler)
-        r.Post("/", postHandler)
-    })
+			r.Use(authMiddleware.MiddlewareHandler)
+			r.Post("/", createPostHandler)
+			r.Get("/", getAllPostsHandler)
+			r.Get("/user/{userID}", getPostByUserHAndler)
+			r.Patch("/{postID}", updatePostHAndler)
+			r.Delete("/{postID}", deletePostHandler)
+		})
 	
 	r.Route("/{postID}/comments", func(r chi.Router) {
 		r.Use(authMiddleware.MiddlewareHandler)
