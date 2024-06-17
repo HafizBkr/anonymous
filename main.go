@@ -50,9 +50,6 @@ func main() {
 	authHandler := auth.NewAuthHandler(authService, logger)
 	userHandler := users.Handler(userService, logger)
 	postHandler := posts.CreatePostHandler(postService)
-	getPostHandler :=posts.DeletePostHandler(postService)
-	updatePostHandler :=posts.DeletePostHandler(postService)
-	deletePostHandler :=posts.DeletePostHandler(postService)
 	createCommentsHandler := comments.CreateCommentHandler(commentService)
 	updateCommentHandler := comments.UpdateCommentHandler(commentService)
 	getCommentByPostHandler := comments.GetCommentsByPostIDHandler(commentService)
@@ -77,9 +74,6 @@ func main() {
 	r.Route("/posts", func(r chi.Router) {
         r.Use(authMiddleware.MiddlewareHandler)
         r.Post("/", postHandler)
-        r.Get("/{id}", getPostHandler)
-        r.Patch("/{id}", updatePostHandler)
-        r.Delete("/{id}", deletePostHandler)
     })
 	
 	r.Route("/{postID}/comments", func(r chi.Router) {
