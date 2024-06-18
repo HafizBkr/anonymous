@@ -9,6 +9,10 @@ import (
 	"anonymous/types"
 )
 
+
+
+
+
 type IAuthService interface {
 	Register(*registrationPayload) (*string, *models.LoggedInUser, error)
 	Login(*loginPayload) (*string, *models.LoggedInUser, error)

@@ -8,6 +8,7 @@ import (
 	"anonymous/posts"
 	"anonymous/provider"
 	"anonymous/users"
+	"anonymous/chat"
 	"log"
 	"log/slog"
 	"net"
@@ -95,18 +96,42 @@ func main() {
 				r.Delete("/{commentID}", deleteCommentHandler)
  })
 	
+ r.Route("/chat", func(r chi.Router) {
+        r.Use(authMiddleware.MiddlewareHandler)
+        r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+            chat.HandleHTTPMessage(postgresPool, w, r)
+        })
+        r.Handle("/ws", authMiddleware.MiddlewareHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            chat.HandleWebSocket(postgresPool, w, r)
+        })))
+         r.Get("/messages/{user1ID}/{user2ID}",chat.GetMessagesBetweenUsersHandler(postgresPool))
+         r.Get("/messages/owner",chat.GetMessagesByOwnerHandler(postgresPool))
+         r.Patch("/messages/{messageID}", func(w http.ResponseWriter, r *http.Request) {
+                     chat.UpdateMessageHandler(postgresPool, w, r)
+       })
+         r.Delete("/messages/{messageID}", func(w http.ResponseWriter, r *http.Request) {
+                     chat.DeleteMessageHandler(postgresPool, w, r)
+                 })
+	
+   })
+ 
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			return
+		})
+
 	staticDir := "./static"
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
+		r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
 
 
-	server := http.Server{
-		Addr:         net.JoinHostPort("0.0.0.0", port),
-		Handler:      r,
-		ReadTimeout:  time.Second * 10,
-		WriteTimeout: time.Second * 10,
-	}
-	log.Println("Server is running on port:", port)
-	if err := server.ListenAndServe(); err != nil {
-		panic(err)
-	}
+		server := http.Server{
+			Addr:         net.JoinHostPort("0.0.0.0", port),
+			Handler:      r,
+			ReadTimeout:  time.Second * 10,
+			WriteTimeout: time.Second * 10,
+		}
+		log.Println("Server is running on port:", port)
+		if err := server.ListenAndServe(); err != nil {
+			panic(err)
+		}
 }
