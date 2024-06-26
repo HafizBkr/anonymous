@@ -2,13 +2,14 @@ package main
 
 import (
 	"anonymous/auth"
+	"anonymous/chat"
 	"anonymous/comments"
 	"anonymous/middleware"
 	"anonymous/postgres"
 	"anonymous/posts"
 	"anonymous/provider"
+	"anonymous/replies"
 	"anonymous/users"
-	"anonymous/chat"
 	"log"
 	"log/slog"
 	"net"
@@ -40,16 +41,19 @@ func main() {
 	authMiddleware := middlewares.NewAuthMiddleware(usersRepo, jwtProvider, logger)
 	postRepo := posts.NewPostRepo(postgresPool)
 	commentRepo := comments.NewCommentRepo(postgresPool)
+	repliesRepo := replies.NewCommentReplyRepo(postgresPool)
 
 	authService := auth.Service(usersRepo, txProvider, logger, jwtProvider)
 	userService := users.Service(usersRepo, txProvider, logger)
 	postService := posts.NewPostService(postRepo, *authService )
 	commentService := comments.NewCommentService(commentRepo, *authService )
+	repliesService := replies.NewCommentReplyService(repliesRepo, *authService)
 
 
 
 	authHandler := auth.NewAuthHandler(authService, logger)
 	userHandler := users.Handler(userService, logger)
+
 	
 	createPostHandler := posts.CreatePostHandler(postService)
 	getAllPostsHandler :=posts.GetAllPostsHandler(postService)
@@ -62,6 +66,12 @@ func main() {
 	getCommentByPostHandler := comments.GetCommentsByPostIDHandler(commentService)
 	getCommentHandler := comments.GetCommentHandler(commentService)
 	deleteCommentHandler := comments.DeleteCommentHandler(commentService)
+	
+	createCommentReplyHandler := replies.CreateCommentReplyHandler(repliesService)
+	getCommentRepliesHandler := replies.GetCommentReplyHandler(repliesService)
+	getCommentRepliesByCommentIDHandler := replies.GetCommentRepliesByCommentIDHandler(repliesService)
+	updateCommentReplyHandler := replies.UpdateCommentReplyHandler(repliesService)
+	deleteCommentReplyHandler := replies.DeleteCommentReplyHandler(repliesService)
 	
 	
 	
@@ -95,6 +105,17 @@ func main() {
 				r.Patch("/{commentID}", updateCommentHandler)
 				r.Delete("/{commentID}", deleteCommentHandler)
  })
+	
+	r.Route("/{commentID}/replies", func(r chi.Router) {
+	    	r.Use(authMiddleware.MiddlewareHandler)
+				r.Post("/", createCommentReplyHandler)
+				r.Get("/", getCommentRepliesByCommentIDHandler)
+				r.Get("/{replyID}", getCommentRepliesHandler)
+				r.Patch("/{replyID}", updateCommentReplyHandler)
+				r.Delete("/{replyID}", deleteCommentReplyHandler)
+})
+		
+	
 	
  r.Route("/chat", func(r chi.Router) {
         r.Use(authMiddleware.MiddlewareHandler)

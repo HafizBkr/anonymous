@@ -7,8 +7,6 @@ import (
     "github.com/go-chi/render"
     "fmt"
     "strings"
-    
-    
 )
 
 func CreateCommentHandler(service CommentService) http.HandlerFunc {
@@ -26,8 +24,6 @@ func CreateCommentHandler(service CommentService) http.HandlerFunc {
             http.Error(w, "Invalid request payload", http.StatusBadRequest)
             return
         }
-
-        // Set postID from URL parameter
         payload.PostID = postID
 
         comment, err := service.CreateComment(token, &payload)
@@ -39,8 +35,6 @@ func CreateCommentHandler(service CommentService) http.HandlerFunc {
         render.JSON(w, r, comment)
     }
 }
-
-
 func GetCommentsByPostIDHandler(service CommentService) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         postID := chi.URLParam(r, "postID")
@@ -54,7 +48,6 @@ func GetCommentsByPostIDHandler(service CommentService) http.HandlerFunc {
         render.JSON(w, r, comments)
     }
 }
-
 func GetCommentHandler(service CommentService) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         commentID := chi.URLParam(r, "commentID")
@@ -68,7 +61,6 @@ func GetCommentHandler(service CommentService) http.HandlerFunc {
         render.JSON(w, r, comment)
     }
 }
-
 func UpdateCommentHandler(service CommentService) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         authHeader := r.Header.Get("Authorization")
