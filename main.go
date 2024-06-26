@@ -82,10 +82,12 @@ func main() {
 		r.Post("/login", authHandler.HandleLogin)
 		r.Get("/verify-email", authHandler.HandleEmailVerification)
 	})
+	
 	r.Route("/users", func(r chi.Router) {
-		r.Patch("/password", userHandler.HandleChangePassword)
+	 	// r.Use(authMiddleware.MiddlewareHandler)
 		r.Get("/", userHandler.HandleGetAllUsers)
 		r.Patch("/status", userHandler.HandleToggleStatus)
+		r.Patch("/password", userHandler.HandleChangePassword)
 	})
 	
 	r.Route("/posts", func(r chi.Router) {

@@ -167,7 +167,7 @@ func (r *UserRepo) GetAllUsersData() (*[]models.LoggedInUser, error) {
 	rows, err := r.db.Queryx(
 		`
       SELECT
-        id, username, password_hash, email, email_verified, joined_at, active, profile_picture
+        id, username, password_hash, email, email_verified, joined_at, active, profile_picture , email_verification_token
       FROM
         users
     `,
