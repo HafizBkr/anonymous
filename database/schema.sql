@@ -52,3 +52,9 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+
+pour autoriser la recherche
+
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_posts_content ON posts(content);

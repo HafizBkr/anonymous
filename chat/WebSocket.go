@@ -194,7 +194,6 @@ func UpdateMessageHandler(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Récupérer le message depuis la base de données
     mr := NewMessageRepository(db)
     message, err := mr.GetMessage(messageID)
     if err != nil {
@@ -207,13 +206,11 @@ func UpdateMessageHandler(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Vérifier si l'utilisateur connecté est le propriétaire du message
     if message.From != user.ID {
         http.Error(w, "Forbidden: You are not the owner of this message", http.StatusForbidden)
         return
     }
 
-    // Décode le nouveau contenu du message depuis le corps de la requête
     var updatedContent struct {
         Content string `json:"content"`
     }
@@ -223,7 +220,6 @@ func UpdateMessageHandler(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Mettre à jour le contenu du message dans la base de données
     err = mr.UpdateMessageContent(messageID, updatedContent.Content)
     if err != nil {
         log.Printf("Error updating message content: %v", err)
@@ -231,7 +227,6 @@ func UpdateMessageHandler(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Répondre avec un statut OK et un message JSON
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(map[string]string{"status": "message content updated"})
 }
@@ -239,8 +234,6 @@ func UpdateMessageHandler(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
 func GetMessageHandler(db *sqlx.DB) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         messageID := chi.URLParam(r, "messageID")
-
-        // Récupérer le message depuis la base de données
         mr := NewMessageRepository(db)
         message, err := mr.GetMessage(messageID)
         if err != nil {
@@ -252,8 +245,6 @@ func GetMessageHandler(db *sqlx.DB) http.HandlerFunc {
             http.Error(w, "Message not found", http.StatusNotFound)
             return
         }
-
-        // Répondre avec le message en format JSON
         w.WriteHeader(http.StatusOK)
         json.NewEncoder(w).Encode(message)
     }
@@ -280,7 +271,6 @@ func DeleteMessageHandler(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
     mr := NewMessageRepository(db)
 
     if request.DeleteForAll {
-        // Vérifie si l'utilisateur est le propriétaire du message
         isOwner, err := mr.IsMessageOwner(messageID, user.ID)
         if err != nil {
             log.Printf("Error checking message ownership: %v", err)
@@ -291,15 +281,12 @@ func DeleteMessageHandler(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
             http.Error(w, "Forbidden", http.StatusForbidden)
             return
         }
-
-        // Supprime le message pour tout le monde
         if err := mr.DeleteMessageForAll(messageID); err != nil {
             log.Printf("Error deleting message for all: %v", err)
             http.Error(w, "Internal Server Error", http.StatusInternalServerError)
             return
         }
     } else {
-        // Masque le message pour l'utilisateur courant
         if err := mr.HideMessageForUser(messageID, user.ID); err != nil {
             log.Printf("Error hiding message for user: %v", err)
             http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -312,27 +299,19 @@ func DeleteMessageHandler(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
 }
 func GetMessagesBetweenUsersHandler(db *sqlx.DB) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
-        // Récupérer l'utilisateur actuel à partir du contexte
         user := r.Context().Value(middlewares.ContextKeyUser).(*models.LoggedInUser)
         if user == nil {
             http.Error(w, "Unauthorized", http.StatusUnauthorized)
             return
         }
-
-        // Récupérer les IDs des utilisateurs à partir des paramètres de l'URL
         user1ID := chi.URLParam(r, "user1ID")
         user2ID := chi.URLParam(r, "user2ID")
 
-        // Log des IDs récupérés
         log.Printf("User1ID: %s, User2ID: %s, CurrentUser: %s", user1ID, user2ID, user.ID)
-
-        // Vérifier si l'utilisateur actuel est l'un des utilisateurs concernés
         if user.ID != user1ID && user.ID != user2ID {
             http.Error(w, "Forbidden", http.StatusForbidden)
             return
         }
-
-        // Récupérer les messages depuis la base de données
         mr := NewMessageRepository(db)
         messages, err := mr.GetMessagesBetweenUsers(user1ID, user2ID)
         if err != nil {
@@ -341,7 +320,6 @@ func GetMessagesBetweenUsersHandler(db *sqlx.DB) http.HandlerFunc {
             return
         }
 
-        // Répondre avec les messages en format JSON
         w.WriteHeader(http.StatusOK)
         json.NewEncoder(w).Encode(messages)
     }

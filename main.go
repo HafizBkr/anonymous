@@ -10,6 +10,7 @@ import (
 	"anonymous/provider"
 	"anonymous/replies"
 	"anonymous/users"
+	"anonymous/search_algorithm"
 	"log"
 	"log/slog"
 	"net"
@@ -116,6 +117,9 @@ func main() {
 				r.Patch("/{replyID}", updateCommentReplyHandler)
 				r.Delete("/{replyID}", deleteCommentReplyHandler)
 })
+	
+   r.With(authMiddleware.MiddlewareHandler).Get("/search", searchalgorithm.SearchHandler(searchalgorithm.NewSearchService(postgresPool)))
+
 		
 	
 	
