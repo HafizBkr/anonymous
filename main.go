@@ -4,13 +4,16 @@ import (
 	"anonymous/auth"
 	"anonymous/chat"
 	"anonymous/comments"
+	"anonymous/comunauter"
 	"anonymous/middleware"
+	"anonymous/notifications"
 	"anonymous/postgres"
 	"anonymous/posts"
 	"anonymous/provider"
 	"anonymous/replies"
-	"anonymous/users"
 	"anonymous/search_algorithm"
+	"anonymous/users"
+	"context"
 	"log"
 	"log/slog"
 	"net"
@@ -18,6 +21,7 @@ import (
 	"os"
 	"time"
 
+	"firebase.google.com/go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
@@ -38,22 +42,36 @@ func main() {
 		middleware.Logger,
 		middleware.Recoverer,
 	)
+    firebaseConfig := firebase.Config{
+        ProjectID: os.Getenv("FIREBASE_PROJECT_ID"),
+     }
+	app, err := firebase.NewApp(context.Background(), &firebaseConfig)
+    if err != nil {
+        log.Fatalf("Error initializing Firebase app: %v", err)
+    }
 	usersRepo := users.Repo(postgresPool)
 	authMiddleware := middlewares.NewAuthMiddleware(usersRepo, jwtProvider, logger)
 	postRepo := posts.NewPostRepo(postgresPool)
 	commentRepo := comments.NewCommentRepo(postgresPool)
 	repliesRepo := replies.NewCommentReplyRepo(postgresPool)
+	fmcRepo := notifications.NewFCMRepo(postgresPool)
+	comunityRepo := comunauter.NewCommunityRepo(postgresPool)
 
 	authService := auth.Service(usersRepo, txProvider, logger, jwtProvider)
 	userService := users.Service(usersRepo, txProvider, logger)
 	postService := posts.NewPostService(postRepo, *authService )
 	commentService := comments.NewCommentService(commentRepo, *authService )
 	repliesService := replies.NewCommentReplyService(repliesRepo, *authService)
+	fmcService := notifications.NewNotificationService(app , fmcRepo)
+	comunityService := comunauter.NewCommunityService(comunityRepo, *authService)
+	
+	
 
 
 
 	authHandler := auth.NewAuthHandler(authService, logger)
 	userHandler := users.Handler(userService, logger)
+	fmcHandler := notifications.NewNotificationHandler(*fmcService)
 
 	
 	createPostHandler := posts.CreatePostHandler(postService)
@@ -74,7 +92,11 @@ func main() {
 	updateCommentReplyHandler := replies.UpdateCommentReplyHandler(repliesService)
 	deleteCommentReplyHandler := replies.DeleteCommentReplyHandler(repliesService)
 	
-	
+	createComunityHandler:=comunauter.CreateCommunityHandler(comunityService)
+	joinComunityHandler:=comunauter.JoinCommunityHandler(comunityService)
+	getComunityHandler:=comunauter.GetCommunityHandler(comunityService)
+	getallComunityHandler:=comunauter.GetAllCommunitiesHandler(comunityService)
+	getAllUserComunity := comunauter.GetCommunityMembersHandler(comunityService)
 	
 	
 
@@ -117,12 +139,19 @@ func main() {
 				r.Patch("/{replyID}", updateCommentReplyHandler)
 				r.Delete("/{replyID}", deleteCommentReplyHandler)
 })
+	r.Route("/comunity", func(r chi.Router) {
+		    	r.Use(authMiddleware.MiddlewareHandler)
+					r.Post("/", createComunityHandler)
+					r.Get("/", getallComunityHandler)
+					r.Get("/{communityID}", getComunityHandler)
+					r.Get("/u/{communityID}", getComunityHandler)
+					r.Post("/{communityID}", joinComunityHandler)
+					r.Get("/menbers/{communityID}", getAllUserComunity)
+					
+})
 	
    r.With(authMiddleware.MiddlewareHandler).Get("/search", searchalgorithm.SearchHandler(searchalgorithm.NewSearchService(postgresPool)))
 
-		
-	
-	
  r.Route("/chat", func(r chi.Router) {
         r.Use(authMiddleware.MiddlewareHandler)
         r.Post("/", func(w http.ResponseWriter, r *http.Request) {
@@ -147,10 +176,15 @@ func main() {
 			return
 		})
 
+ r.Route("/tokens", func(r chi.Router) {
+        r.Post("/",fmcHandler.RegisterToken)
+    })
+    r.Route("/notifications", func(r chi.Router) {
+        r.Post("/send", fmcHandler.SendNotification)
+    })
+    
 	staticDir := "./static"
 		r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
-
-
 		server := http.Server{
 			Addr:         net.JoinHostPort("0.0.0.0", port),
 			Handler:      r,
