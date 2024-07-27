@@ -18,7 +18,7 @@ const (
 )
 
 type Sender struct {
-	User     string
+	User     string 
 	Password string
 }
 

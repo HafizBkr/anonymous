@@ -86,3 +86,13 @@ CREATE TABLE community_members (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE
 );
+
+
+CREATE TABLE user_likes (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    liked_by UUID NOT NULL,
+    liked_at TIMESTAMP NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (liked_by) REFERENCES users(id)
+);

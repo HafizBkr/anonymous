@@ -7,6 +7,7 @@ import (
 	"anonymous/comunauter"
 	"anonymous/middleware"
 	"anonymous/notifications"
+	"anonymous/points"
 	"anonymous/postgres"
 	"anonymous/posts"
 	"anonymous/provider"
@@ -56,6 +57,7 @@ func main() {
 	repliesRepo := replies.NewCommentReplyRepo(postgresPool)
 	fmcRepo := notifications.NewFCMRepo(postgresPool)
 	comunityRepo := comunauter.NewCommunityRepo(postgresPool)
+	pointsRepo := points.NewPointsRepo(postgresPool)
 
 	authService := auth.Service(usersRepo, txProvider, logger, jwtProvider)
 	userService := users.Service(usersRepo, txProvider, logger)
@@ -64,6 +66,7 @@ func main() {
 	repliesService := replies.NewCommentReplyService(repliesRepo, *authService)
 	fmcService := notifications.NewNotificationService(app , fmcRepo)
 	comunityService := comunauter.NewCommunityService(comunityRepo, *authService)
+	pointService := points.NewPointsService(pointsRepo, logger , jwtProvider)
 	
 	
 
@@ -72,6 +75,7 @@ func main() {
 	authHandler := auth.NewAuthHandler(authService, logger)
 	userHandler := users.Handler(userService, logger)
 	fmcHandler := notifications.NewNotificationHandler(*fmcService)
+	pointHandler := points.NewPointsHandler(pointService, logger)
 
 	
 	createPostHandler := posts.CreatePostHandler(postService)
@@ -139,6 +143,7 @@ func main() {
 				r.Patch("/{replyID}", updateCommentReplyHandler)
 				r.Delete("/{replyID}", deleteCommentReplyHandler)
 })
+	
 	r.Route("/comunity", func(r chi.Router) {
 		    	r.Use(authMiddleware.MiddlewareHandler)
 					r.Post("/", createComunityHandler)
@@ -182,6 +187,12 @@ func main() {
     r.Route("/notifications", func(r chi.Router) {
         r.Post("/send", fmcHandler.SendNotification)
     })
+    
+   r.Route("/points", func(r chi.Router) {
+       r.Use(authMiddleware.MiddlewareHandler)
+        r.Post("/",pointHandler.HandleLikeUserProfile)
+        r.Get("/{userID}", pointHandler.HandleGetUserProfileLikes)
+   })
     
 	staticDir := "./static"
 		r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
