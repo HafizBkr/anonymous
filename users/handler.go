@@ -6,6 +6,8 @@ import (
 	"anonymous/utils"
 	"encoding/json"
 	"net/http"
+	"anonymous/middleware"
+	"fmt"
 )
 
 type IUserService interface {
@@ -30,29 +32,36 @@ func Handler(
 }
 
 func (h *UsersHandler) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
-	currUser, ok := r.Context().Value("user").(*models.LoggedInUser)
-	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-	payload := &changePasswordPayload{}
-	err := json.NewDecoder(r.Body).Decode(payload)
-	if err != nil {
-		utils.HandleBodyDecodingErr(w, err, h.logger)
-		return
-	}
-	errs := payload.Validate()
-	if errs != nil {
-		utils.WriteValidationError(w, errs)
-    return
-	}
-	err = h.service.ChangePassword(payload, currUser)
-	if err != nil {
-		utils.WriteError(w, err)
-		return
-	}
-	utils.WriteData(w, http.StatusOK, nil)
+    currUser, ok := r.Context().Value(middlewares.ContextKeyUser).(*models.LoggedInUser)
+    if !ok {
+        h.logger.Error("User not found in context")
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    payload := &changePasswordPayload{}
+    err := json.NewDecoder(r.Body).Decode(payload)
+    if err != nil {
+        utils.HandleBodyDecodingErr(w, err, h.logger)
+        return
+    }
+
+    errs := payload.Validate()
+    if len(errs) > 0 {
+        utils.WriteValidationError(w, errs)
+        return
+    }
+
+    err = h.service.ChangePassword(payload, currUser)
+    if err != nil {
+        h.logger.Error(fmt.Sprintf("Error changing password: %v", err))
+        utils.WriteError(w, err)
+        return
+    }
+
+    utils.WriteData(w, http.StatusOK, nil)
 }
+
 
 func (h *UsersHandler) HandleToggleStatus(w http.ResponseWriter, r *http.Request) {
 	payload := &toggleUserStatusPayload{}

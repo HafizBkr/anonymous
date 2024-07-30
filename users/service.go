@@ -6,6 +6,7 @@ import (
 	"anonymous/helpers"
 	"anonymous/models"
 	"anonymous/types"
+	"fmt"
 )
 
 type UserService struct {
@@ -27,24 +28,29 @@ func Service(
 }
 
 func (s *UserService) ChangePassword(
-	data *changePasswordPayload,
-	userData *models.LoggedInUser,
+    data *changePasswordPayload,
+    userData *models.LoggedInUser,
 ) error {
-	if !helpers.HashMatchesString(userData.Password, data.Old) {
-		return commons.Errors.InternalServerError
-	}
-	hash, err := helpers.Hash(data.New)
-	if err != nil {
-		s.logger.Error(err.Error())
-		return commons.Errors.InternalServerError
-	}
-	err = s.users.ChangePassword(hash, userData.ID)
-	if err != nil {
-		s.logger.Error(err.Error())
-		return commons.Errors.InternalServerError
-	}
-	return nil
+    if !helpers.HashMatchesString(userData.Password, data.Old) {
+        s.logger.Error("Old password does not match")
+        return commons.Errors.InternalServerError
+    }
+
+    hash, err := helpers.Hash(data.New)
+    if err != nil {
+        s.logger.Error(fmt.Sprintf("Error hashing new password: %v", err))
+        return commons.Errors.InternalServerError
+    }
+
+    err = s.users.ChangePassword(hash, userData.ID)
+    if err != nil {
+        s.logger.Error(fmt.Sprintf("Error updating password in repository: %v", err))
+        return commons.Errors.InternalServerError
+    }
+
+    return nil
 }
+
 
 func (s *UserService) ToggleUserAccountStatus(users []string, status bool) error {
 	err := s.users.ToggleStatus(users, status)

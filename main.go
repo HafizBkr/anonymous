@@ -111,7 +111,7 @@ func main() {
 	})
 	
 	r.Route("/users", func(r chi.Router) {
-	 	// r.Use(authMiddleware.MiddlewareHandler)
+	 	r.Use(authMiddleware.MiddlewareHandler)
 		r.Get("/", userHandler.HandleGetAllUsers)
 		r.Patch("/status", userHandler.HandleToggleStatus)
 		r.Patch("/password", userHandler.HandleChangePassword)

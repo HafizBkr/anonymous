@@ -147,11 +147,11 @@ func (r *UserRepo) GetUserDataByID(id string) (*models.LoggedInUser, error) {
 }
 
 func (r *UserRepo) ChangePassword(password, id string) error {
-	_, err := r.db.Exec("UPDATE users SET password_hash=$1 WHERE id=$2", password, id)
-	if err != nil {
-		return fmt.Errorf("Error while changing user password: %w", err)
-	}
-	return nil
+    _, err := r.db.Exec("UPDATE users SET password_hash=$1 WHERE id=$2", password, id)
+    if err != nil {
+        return fmt.Errorf("Error while changing user password: %w", err)
+    }
+    return nil
 }
 
 func (r *UserRepo) ToggleStatus(users []string, status bool) error {
