@@ -84,6 +84,12 @@ func main() {
 	getPostByUserHAndler :=posts.GetPostsByUserHandler(postService)
 	updatePostHAndler := posts.UpdatePostHandler(postService)
 	deletePostHandler := posts.DeletePostHandler(postService)
+	LikePostHandler :=posts.LikePostHandler(postService)
+	UnlikePostHandler:=posts.UnlikePostHandler(postService)
+	AddReactionHandler:=posts.AddReactionHandler(postService)
+	RemoveReactionHandler:=posts.RemoveReactionHandler(postService)
+	
+	
 	
 	createCommentsHandler := comments.CreateCommentHandler(commentService)
 	updateCommentHandler := comments.UpdateCommentHandler(commentService)
@@ -125,6 +131,10 @@ func main() {
 			r.Get("/user/{userID}", getPostByUserHAndler)
 			r.Patch("/{postID}", updatePostHAndler)
 			r.Delete("/{postID}", deletePostHandler)
+			r.Post("/{postID}/like", LikePostHandler)
+			r.Delete("/{postID}/like", UnlikePostHandler)
+			r.Post("/{postID}/reaction", AddReactionHandler)
+			r.Delete("/{postID}/reaction", RemoveReactionHandler)
 		})
 	
 	r.Route("/{postID}/comments", func(r chi.Router) {
@@ -156,6 +166,9 @@ func main() {
 					
 })
 	
+	r.Get("/posts/{postID}/likes/count", posts.GetLikesCountHandler(postgresPool))
+    r.Get("/posts/{postID}/reactions/count", posts.GetReactionsCountHandler(postgresPool))
+    
    r.With(authMiddleware.MiddlewareHandler).Get("/search", searchalgorithm.SearchHandler(searchalgorithm.NewSearchService(postgresPool)))
 
  r.Route("/chat", func(r chi.Router) {

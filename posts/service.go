@@ -11,10 +11,14 @@ import (
 type PostService interface {
 	CreatePost(token string, payload *PostPayload) (*models.Post, error)
 	GetPost(id string) (*models.Post, error)
- GetAllPosts() ([]*models.Post, error)
+    GetAllPosts() ([]*models.Post, error)
     GetPostsByUser(userID string) ([]*models.Post, error)
     UpdatePost(token string, postID string, payload *PostPayload) (*models.Post, error)
     DeletePost(token string, postID string) error
+    LikePost(token, postID string) error
+    UnlikePost(token, postID string) error
+    AddReaction(token, postID, reactionType string) error
+    RemoveReaction(token, postID string) error
 }
 
 type postService struct {
@@ -93,4 +97,40 @@ func (s *postService) DeletePost(token string, postID string) error {
     }
 
     return s.repo.DeletePost(postID)
+}
+
+func (s *postService) LikePost(token, postID string) error {
+    userID, err := s.authService.ValidateToken(token)
+    if err != nil {
+        return commons.Errors.AuthenticationFailed
+    }
+
+    return s.repo.LikePost(postID, userID)
+}
+
+func (s *postService) UnlikePost(token, postID string) error {
+    userID, err := s.authService.ValidateToken(token)
+    if err != nil {
+        return commons.Errors.AuthenticationFailed
+    }
+
+    return s.repo.UnlikePost(postID, userID)
+}
+
+func (s *postService) AddReaction(token, postID, reactionType string) error {
+    userID, err := s.authService.ValidateToken(token)
+    if err != nil {
+        return commons.Errors.AuthenticationFailed
+    }
+
+    return s.repo.AddReaction(postID, userID, reactionType)
+}
+
+func (s *postService) RemoveReaction(token, postID string) error {
+    userID, err := s.authService.ValidateToken(token)
+    if err != nil {
+        return commons.Errors.AuthenticationFailed
+    }
+
+    return s.repo.RemoveReaction(postID, userID)
 }

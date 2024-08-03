@@ -14,6 +14,10 @@ type PostRepo interface {
         GetPostsByUser(userID string) ([]*models.Post, error)
         UpdatePost(postID string, payload *PostPayload) (*models.Post, error)
         DeletePost(postID string) error
+        LikePost(postID, userID string) error
+        UnlikePost(postID, userID string) error
+        AddReaction(postID, userID, reactionType string) error
+        RemoveReaction(postID, userID string) error
 }
 
 type postRepo struct {
@@ -121,4 +125,28 @@ func (r *postRepo) DeletePost(postID string) error {
     }
 
     return nil
+}
+
+func (r *postRepo) LikePost(postID, userID string) error {
+    query := `INSERT INTO post_likes (post_id, user_id) VALUES ($1, $2)`
+    _, err := r.db.Exec(query, postID, userID)
+    return err
+}
+
+func (r *postRepo) UnlikePost(postID, userID string) error {
+    query := `DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2`
+    _, err := r.db.Exec(query, postID, userID)
+    return err
+}
+
+func (r *postRepo) AddReaction(postID, userID, reactionType string) error {
+    query := `INSERT INTO post_reactions (post_id, user_id, reaction_type) VALUES ($1, $2, $3)`
+    _, err := r.db.Exec(query, postID, userID, reactionType)
+    return err
+}
+
+func (r *postRepo) RemoveReaction(postID, userID string) error {
+    query := `DELETE FROM post_reactions WHERE post_id = $1 AND user_id = $2`
+    _, err := r.db.Exec(query, postID, userID)
+    return err
 }

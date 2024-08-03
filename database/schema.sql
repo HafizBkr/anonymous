@@ -113,3 +113,27 @@ CREATE TABLE community_chats (
     FOREIGN KEY (community_id) REFERENCES communities(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+DROP TABLE IF EXISTS post_likes;
+DROP TABLE IF EXISTS post_reactions;
+
+CREATE TABLE post_likes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_post FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(post_id, user_id)
+);
+
+CREATE TABLE post_reactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    reaction_type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_post FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(post_id, user_id)
+);
