@@ -17,6 +17,7 @@ type errs struct {
 	InvalidToken     error
 	Forbidden     error
 	BadRequest error
+	ErrInvalidToken error
 }
 
 var Errors = errs{
@@ -57,4 +58,8 @@ var Errors = errs{
                 StatusCode: http.StatusUnauthorized,
                 ErrorCode:  "BadRequest",
             },
+           	ErrInvalidToken : types.ServiceError{
+                     StatusCode: http.StatusUnauthorized,
+                     ErrorCode:  "ErrInvalidToken ",
+                 },
 }

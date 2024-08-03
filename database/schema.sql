@@ -96,3 +96,20 @@ CREATE TABLE user_likes (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (liked_by) REFERENCES users(id)
 );
+
+CREATE TABLE password_reset_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE community_chats (
+    id UUID PRIMARY KEY,
+    community_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (community_id) REFERENCES communities(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);

@@ -277,6 +277,6 @@ func (r *UserRepo) VerifyEmail(token string) error {
 	if err != nil {
 		return fmt.Errorf("could not update user: %w", err)
 	}
-
 	return nil
 }
+

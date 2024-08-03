@@ -3,6 +3,7 @@ package main
 import (
 	"anonymous/auth"
 	"anonymous/chat"
+	"anonymous/communitychats"
 	"anonymous/comments"
 	"anonymous/comunauter"
 	"anonymous/middleware"
@@ -58,6 +59,7 @@ func main() {
 	fmcRepo := notifications.NewFCMRepo(postgresPool)
 	comunityRepo := comunauter.NewCommunityRepo(postgresPool)
 	pointsRepo := points.NewPointsRepo(postgresPool)
+	communityChatRepo := communitychats.NewCommunityChatRepo(postgresPool)
 
 	authService := auth.Service(usersRepo, txProvider, logger, jwtProvider)
 	userService := users.Service(usersRepo, txProvider, logger)
@@ -67,9 +69,8 @@ func main() {
 	fmcService := notifications.NewNotificationService(app , fmcRepo)
 	comunityService := comunauter.NewCommunityService(comunityRepo, *authService)
 	pointService := points.NewPointsService(pointsRepo, logger , jwtProvider)
+	communityChatService := communitychats.NewCommunityChatService(communityChatRepo,authService)
 	
-	
-
 
 
 	authHandler := auth.NewAuthHandler(authService, logger)
@@ -102,7 +103,7 @@ func main() {
 	getallComunityHandler:=comunauter.GetAllCommunitiesHandler(comunityService)
 	getAllUserComunity := comunauter.GetCommunityMembersHandler(comunityService)
 	
-	
+	communityChatHandler := communitychats.NewCommunityChatHandler(*communityChatService)
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.HandleRegistration)
@@ -193,7 +194,11 @@ func main() {
         r.Post("/",pointHandler.HandleLikeUserProfile)
         r.Get("/{userID}", pointHandler.HandleGetUserProfileLikes)
    })
-    
+   r.Route("/community_chats", func(r chi.Router) {
+           r.Use(authMiddleware.MiddlewareHandler)
+           r.Post("/{communityID}/messages", communityChatHandler.SendMessage)
+           r.Get("/{communityID}/messages", communityChatHandler.GetMessages)
+       })
 	staticDir := "./static"
 		r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
 		server := http.Server{
