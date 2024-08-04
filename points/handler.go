@@ -49,11 +49,16 @@ func (h *PointsHandler) HandleLikeUserProfile(w http.ResponseWriter, r *http.Req
     }
 
     // Appeler le service pour liker le profil utilisateur
-    if err := h.service.LikeUserProfile(payload.UserID, userID); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
+    err = h.service.LikeUserProfile(payload.UserID, userID)
+    if err != nil {
+        if err.Error() == "user has already liked this profile" {
+            http.Error(w, "User has already liked this profile", http.StatusConflict)
+        } else {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+        }
         return
     }
-
+     
     jsonResponse(w, http.StatusOK, nil)
 }
 
@@ -76,7 +81,6 @@ func (h *PointsHandler) HandleGetUserProfileLikes(w http.ResponseWriter, r *http
     h.logger.Info("User profile likes retrieved successfully")
     utils.WriteData(w, http.StatusOK, map[string]int{"likes": count})
 }
-
 
 func jsonResponse(w http.ResponseWriter, status int, data interface{}) {
     w.Header().Set("Content-Type", "application/json")

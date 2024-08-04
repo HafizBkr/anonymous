@@ -17,6 +17,7 @@ type errs struct {
 	InvalidToken     error
 	Forbidden     error
 	BadRequest error
+	DuplicateLike error
 	ErrInvalidToken error
 }
 
@@ -62,4 +63,8 @@ var Errors = errs{
                      StatusCode: http.StatusUnauthorized,
                      ErrorCode:  "ErrInvalidToken ",
                  },
+                	DuplicateLike : types.ServiceError{
+                          StatusCode: http.StatusUnauthorized,
+                          ErrorCode:  "DuplicateLike ",
+                      },
 }

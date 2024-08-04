@@ -1,48 +1,38 @@
 package notifications
 
 import (
-    "context"
-    "firebase.google.com/go/messaging"
-    "firebase.google.com/go"
-    "log"
+    "fmt"
+    "github.com/jmoiron/sqlx"
+    "anonymous/types" // Remplacez par le chemin correct pour votre projet
 )
 
-type NotificationService struct {
-    app   *firebase.App
-    repo  *FCMRepo 
+type notificationService struct {
+    db           *sqlx.DB
+    jwtProvider  types.JWTProvider
 }
 
-func NewNotificationService(app *firebase.App, repo *FCMRepo) *NotificationService {
-    return &NotificationService{app: app, repo: repo}
+func NewNotificationService(db *sqlx.DB, jwtProvider types.JWTProvider) NotificationService {
+    return &notificationService{
+        db:          db,
+        jwtProvider: jwtProvider,
+    }
 }
 
-func (s *NotificationService) SaveToken(userID, token string) error {
-    return s.repo.SaveToken(userID, token)
-}
-
-func (s *NotificationService) GetToken(userID string) (string, error) {
-    return s.repo.GetToken(userID)
-}
-
-func (s *NotificationService) SendPushNotification(token, title, body string) error {
-    ctx := context.Background()
-    client, err := s.app.Messaging(ctx)
+func (s *notificationService) CreateNotification(notification Notification) error {
+    _, err := s.db.NamedExec(
+        `INSERT INTO notifications (id, user_id, actor_id, action_type, action_id, content, is_read, created_at) VALUES (:id, :user_id, :actor_id, :action_type, :action_id, :content, :is_read, :created_at)`,
+        &notification,
+    )
     if err != nil {
-        return err
+        return fmt.Errorf("error while creating notification: %w", err)
     }
+    return nil
+}
 
-    message := &messaging.Message{
-        Notification: &messaging.Notification{
-            Title: title,
-            Body:  body,
-        },
-        Token: token,
-    }
-
-    _, err = client.Send(ctx, message)
+func (s *notificationService) DecodeToken(token string) (map[string]interface{}, error) {
+    claims, err := s.jwtProvider.Decode(token)
     if err != nil {
-        log.Printf("Error sending push notification: %v\n", err)
+        return nil, fmt.Errorf("error decoding token: %w", err)
     }
-
-    return err
+    return claims, nil
 }

@@ -34,7 +34,7 @@ func (s *pointsService) LikeUserProfile(userID, likedBy string) error {
     err := s.repo.LikeUserProfile(userID, likedBy)
     if err != nil {
         s.logger.Error(err.Error())
-        return commons.Errors.InternalServerError
+        return commons.Errors.DuplicateLike
     }
     return nil
 }

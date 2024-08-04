@@ -148,3 +148,16 @@ CREATE TABLE comment_reactions (
     FOREIGN KEY (user_id) REFERENCES users(id),
     UNIQUE (comment_id, user_id, reaction_type)
 );
+
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    actor_id UUID NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
+    action_id UUID,
+    content TEXT,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (actor_id) REFERENCES users(id)
+);

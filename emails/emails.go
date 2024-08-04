@@ -83,7 +83,7 @@ func (sender *Sender) WritePlainEmail(dest []string, subject, bodyMessage string
 }
 
 func (sender Sender) SendVerificationEmail(dest []string, token string) error {
-	verificationLink := fmt.Sprintf("http://localhost:8080/auth/verify-email?token=%s", token)
+	verificationLink := fmt.Sprintf("https://anonymous-4jef.onrender.com/auth/verify-email?token=%s", token)
 	subject := "Please verify your email address"
 	bodyMessage := fmt.Sprintf("Click the following link to verify your email address: <a href=\"%s\">%s</a>", verificationLink, verificationLink)
 	message := sender.WriteHTMLEmail(dest, subject, bodyMessage)

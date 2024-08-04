@@ -7,7 +7,6 @@ import (
 	"anonymous/comments"
 	"anonymous/comunauter"
 	"anonymous/middleware"
-	"anonymous/notifications"
 	"anonymous/points"
 	"anonymous/postgres"
 	"anonymous/posts"
@@ -15,15 +14,12 @@ import (
 	"anonymous/replies"
 	"anonymous/search_algorithm"
 	"anonymous/users"
-	"context"
 	"log"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"time"
-
-	"firebase.google.com/go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
@@ -44,19 +40,11 @@ func main() {
 		middleware.Logger,
 		middleware.Recoverer,
 	)
-    firebaseConfig := firebase.Config{
-        ProjectID: os.Getenv("FIREBASE_PROJECT_ID"),
-     }
-	app, err := firebase.NewApp(context.Background(), &firebaseConfig)
-    if err != nil {
-        log.Fatalf("Error initializing Firebase app: %v", err)
-    }
 	usersRepo := users.Repo(postgresPool)
 	authMiddleware := middlewares.NewAuthMiddleware(usersRepo, jwtProvider, logger)
 	postRepo := posts.NewPostRepo(postgresPool)
 	commentRepo := comments.NewCommentRepo(postgresPool)
 	repliesRepo := replies.NewCommentReplyRepo(postgresPool)
-	fmcRepo := notifications.NewFCMRepo(postgresPool)
 	comunityRepo := comunauter.NewCommunityRepo(postgresPool)
 	pointsRepo := points.NewPointsRepo(postgresPool)
 	communityChatRepo := communitychats.NewCommunityChatRepo(postgresPool)
@@ -66,7 +54,6 @@ func main() {
 	postService := posts.NewPostService(postRepo, *authService )
 	commentService := comments.NewCommentService(commentRepo, *authService )
 	repliesService := replies.NewCommentReplyService(repliesRepo, *authService)
-	fmcService := notifications.NewNotificationService(app , fmcRepo)
 	comunityService := comunauter.NewCommunityService(comunityRepo, *authService)
 	pointService := points.NewPointsService(pointsRepo, logger , jwtProvider)
 	communityChatService := communitychats.NewCommunityChatService(communityChatRepo,authService)
@@ -75,7 +62,6 @@ func main() {
 
 	authHandler := auth.NewAuthHandler(authService, logger)
 	userHandler := users.Handler(userService, logger)
-	fmcHandler := notifications.NewNotificationHandler(*fmcService)
 	pointHandler := points.NewPointsHandler(pointService, logger)
 
 	
@@ -173,6 +159,7 @@ func main() {
 	r.Get("/posts/{postID}/likes/count", posts.GetLikesCountHandler(postgresPool))
     r.Get("/posts/{postID}/reactions/count", posts.GetReactionsCountHandler(postgresPool))
     r.Get("/posts/{postID}/comments/count", comments.GetCommentsCountByPostIDHandler(commentService))
+    
 
     
    r.With(authMiddleware.MiddlewareHandler).Get("/search", searchalgorithm.SearchHandler(searchalgorithm.NewSearchService(postgresPool)))
@@ -200,13 +187,6 @@ func main() {
 			w.WriteHeader(http.StatusOK)
 			return
 		})
-
- r.Route("/tokens", func(r chi.Router) {
-        r.Post("/",fmcHandler.RegisterToken)
-    })
-    r.Route("/notifications", func(r chi.Router) {
-        r.Post("/send", fmcHandler.SendNotification)
-    })
     
    r.Route("/points", func(r chi.Router) {
        r.Use(authMiddleware.MiddlewareHandler)
