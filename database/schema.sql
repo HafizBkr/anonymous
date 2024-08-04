@@ -137,3 +137,14 @@ CREATE TABLE post_reactions (
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(post_id, user_id)
 );
+
+CREATE TABLE comment_reactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    comment_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    reaction_type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (comment_id) REFERENCES comments(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE (comment_id, user_id, reaction_type)
+);

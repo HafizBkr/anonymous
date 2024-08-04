@@ -144,6 +144,10 @@ func main() {
 				r.Get("/{commentID}", getCommentHandler)
 				r.Patch("/{commentID}", updateCommentHandler)
 				r.Delete("/{commentID}", deleteCommentHandler)
+				r.Put("/{commentID}/reactions", comments.AddOrUpdateReactionHandler(commentService))
+				r.Get("/{commentID}/reaction_counts",comments.GetReactionCountsHandler(commentService))
+
+
  })
 	
 	r.Route("/{commentID}/replies", func(r chi.Router) {
@@ -168,6 +172,8 @@ func main() {
 	
 	r.Get("/posts/{postID}/likes/count", posts.GetLikesCountHandler(postgresPool))
     r.Get("/posts/{postID}/reactions/count", posts.GetReactionsCountHandler(postgresPool))
+    r.Get("/posts/{postID}/comments/count", comments.GetCommentsCountByPostIDHandler(commentService))
+
     
    r.With(authMiddleware.MiddlewareHandler).Get("/search", searchalgorithm.SearchHandler(searchalgorithm.NewSearchService(postgresPool)))
 

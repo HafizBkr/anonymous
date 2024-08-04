@@ -14,6 +14,10 @@ type CommentRepo interface {
     UpdateComment(id string, payload *UpdateCommentPayload, userID string) (*models.Comment, error) 
     DeleteComment(userID string, id string) error
     GetCommentsByPostID(postID string) ([]*models.Comment, error)
+    GetCommentsCountByPostID(postID string) (int, error)
+    AddOrUpdateReaction(commentID, userID, reactionType string) (*models.CommentReaction, error)
+    CountReactions(commentID string) (map[string]int, error)
+    
 }
 
 type commentRepo struct {
@@ -157,3 +161,99 @@ func (r *commentRepo) GetCommentDetails(commentID string) (*models.Comment, erro
     return &comment, nil
 }
 
+func (r *commentRepo) AddOrUpdateReaction(commentID, userID, reactionType string) (*models.CommentReaction, error) {
+    var existingReactionID string
+
+    // Vérifier si une réaction existe déjà pour ce commentaire et cet utilisateur
+    err := r.db.Get(&existingReactionID, `
+        SELECT id FROM comment_reactions
+        WHERE comment_id = $1 AND user_id = $2
+    `, commentID, userID)
+    
+    if err != nil && err.Error() != "sql: no rows in result set" {
+        return nil, fmt.Errorf("error checking existing reaction: %w", err)
+    }
+
+    var updatedReaction models.CommentReaction
+    if existingReactionID != "" {
+        // Mettre à jour la réaction existante
+        _, err := r.db.Exec(`
+            UPDATE comment_reactions
+            SET reaction_type = $1, created_at = $2
+            WHERE id = $3
+        `, reactionType, time.Now(), existingReactionID)
+        if err != nil {
+            return nil, fmt.Errorf("error updating reaction: %w", err)
+        }
+
+        // Récupérer la réaction mise à jour
+        err = r.db.Get(&updatedReaction, `
+            SELECT id, comment_id, user_id, reaction_type, created_at
+            FROM comment_reactions
+            WHERE id = $1
+        `, existingReactionID)
+        if err != nil {
+            return nil, fmt.Errorf("error retrieving updated reaction: %w", err)
+        }
+    } else {
+        // Ajouter une nouvelle réaction
+        query := `
+            INSERT INTO comment_reactions (id, comment_id, user_id, reaction_type, created_at)
+            VALUES (uuid_generate_v4(), $1, $2, $3, $4)
+            RETURNING id
+        `
+        err = r.db.QueryRow(query, commentID, userID, reactionType, time.Now()).Scan(&updatedReaction.ID)
+        if err != nil {
+            return nil, fmt.Errorf("error adding reaction: %w", err)
+        }
+
+        // Récupérer la nouvelle réaction
+        err = r.db.Get(&updatedReaction, `
+            SELECT id, comment_id, user_id, reaction_type, created_at
+            FROM comment_reactions
+            WHERE id = $1
+        `, updatedReaction.ID)
+        if err != nil {
+            return nil, fmt.Errorf("error retrieving added reaction: %w", err)
+        }
+    }
+
+    return &updatedReaction, nil
+}
+func (r *commentRepo) GetCommentsCountByPostID(postID string) (int, error) {
+    var count int
+    query := "SELECT COUNT(*) FROM comments WHERE post_id = $1"
+    err := r.db.QueryRow(query, postID).Scan(&count)
+    if err != nil {
+        return 0, fmt.Errorf("error counting comments: %w", err)
+    }
+    return count, nil
+}
+
+
+func (r *commentRepo) CountReactions(commentID string) (map[string]int, error) {
+    query := `
+        SELECT reaction_type, COUNT(*) 
+        FROM comment_reactions 
+        WHERE comment_id = $1 
+        GROUP BY reaction_type
+    `
+    
+    rows, err := r.db.Query(query, commentID)
+    if err != nil {
+        return nil, fmt.Errorf("error counting reactions: %w", err)
+    }
+    defer rows.Close()
+
+    counts := make(map[string]int)
+    for rows.Next() {
+        var reactionType string
+        var count int
+        if err := rows.Scan(&reactionType, &count); err != nil {
+            return nil, fmt.Errorf("error scanning reaction count: %w", err)
+        }
+        counts[reactionType] = count
+    }
+
+    return counts, nil
+}

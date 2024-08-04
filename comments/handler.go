@@ -129,3 +129,70 @@ func DeleteCommentHandler(service CommentService) http.HandlerFunc {
 }
 
 
+func GetCommentsCountByPostIDHandler(service CommentService) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        postID := chi.URLParam(r, "postID")
+
+        count, err := service.GetCommentsCountByPostID(postID)
+        if err != nil {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+            return
+        }
+
+        response := struct {
+            PostID       string `json:"post_id"`
+            CommentsCount int    `json:"comments_count"`
+        }{
+            PostID:       postID,
+            CommentsCount: count,
+        }
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(response)
+    }
+}
+
+func AddOrUpdateReactionHandler(service CommentService) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        token := r.Header.Get("Authorization")
+        if token == "" {
+            http.Error(w, "Unauthorized", http.StatusUnauthorized)
+            return
+        }
+
+        commentID := chi.URLParam(r, "commentID")
+
+        var payload struct {
+            ReactionType string `json:"reaction_type"`
+        }
+        if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+            http.Error(w, "Invalid request payload", http.StatusBadRequest)
+            return
+        }
+
+        reaction, err := service.AddOrUpdateReaction(token, commentID, payload.ReactionType)
+        if err != nil {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+            return
+        }
+
+        render.JSON(w, r, reaction)
+    }
+}
+
+func GetReactionCountsHandler(service CommentService) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        commentID := chi.URLParam(r, "commentID")
+
+        counts, err := service.CountReactions(commentID)
+        if err != nil {
+            http.Error(w, "Failed to count reactions", http.StatusInternalServerError)
+            return
+        }
+
+        response := map[string]interface{}{
+            "comment_id": commentID,
+            "counts":     counts,
+        }
+        render.JSON(w, r, response)
+    }
+}

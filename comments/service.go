@@ -13,6 +13,9 @@ type CommentService interface {
     UpdateComment(token string,  id string, payload *UpdateCommentPayload) (*models.Comment, error)
     DeleteComment(token string, id string) error
     GetCommentsByPostID(postID string) ([]*models.Comment, error)
+    GetCommentsCountByPostID(postID string) (int, error)
+    AddOrUpdateReaction(token, commentID, reactionType string) (*models.CommentReaction, error)
+    CountReactions(commentID string) (map[string]int, error)
 }
 
 
@@ -70,4 +73,22 @@ func (s *commentService) DeleteComment(token string, commentID string) error {
     }
 
     return s.repo.DeleteComment(userID, commentID)
+}
+
+func (s *commentService) GetCommentsCountByPostID(postID string) (int, error) {
+    return s.repo.GetCommentsCountByPostID(postID)
+}
+
+func (s *commentService) AddOrUpdateReaction(token, commentID, reactionType string) (*models.CommentReaction, error) {
+    userID, err := s.authService.ValidateToken(token)
+    if err != nil {
+        return nil, commons.Errors.AuthenticationFailed
+    }
+
+    return s.repo.AddOrUpdateReaction(commentID, userID, reactionType)
+}
+
+
+func (s *commentService) CountReactions(commentID string) (map[string]int, error) {
+    return s.repo.CountReactions(commentID)
 }
