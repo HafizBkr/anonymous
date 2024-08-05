@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"anonymous/middleware"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 )
 
 type IUserService interface {
 	ChangePassword(data *changePasswordPayload, userData *models.LoggedInUser) error
 	ToggleUserAccountStatus(users []string, status bool) error
 	GetAllUsersData() (*[]models.LoggedInUser, error)
+	GetUserByID(userID string) (*models.LoggedInUser, error)
 }
 
 type UsersHandler struct {
@@ -95,6 +97,23 @@ func (h *UsersHandler) HandleGetAllUsers(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+func (h *UsersHandler) HandleGetUserByID(w http.ResponseWriter, r *http.Request) {
+    userID := chi.URLParam(r, "userID")
+    if userID == "" {
+        http.Error(w, "User ID is required", http.StatusBadRequest)
+        return
+    }
+
+    user, err := h.service.GetUserByID(userID)
+    if err != nil {
+        utils.WriteError(w, err)
+        return
+    }
+
+    utils.WriteData(w, http.StatusOK, map[string]interface{}{
+        "user": user,
+    })
+}
 
 
 

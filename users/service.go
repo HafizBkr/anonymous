@@ -71,3 +71,11 @@ func (s *UserService) GetAllUsersData() (*[]models.LoggedInUser, error) {
 }
 
 
+func (s *UserService) GetUserByID(userID string) (*models.LoggedInUser, error) {
+    user, err := s.users.GetUserDataByID(userID)
+    if err != nil {
+        s.logger.Error(err.Error())
+        return nil, commons.Errors.InternalServerError
+    }
+    return user, nil
+}

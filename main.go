@@ -119,6 +119,7 @@ func main() {
 		r.Get("/", userHandler.HandleGetAllUsers)
 		r.Patch("/status", userHandler.HandleToggleStatus)
 		r.Patch("/password", userHandler.HandleChangePassword)
+		r.Get("/{userID}", userHandler.HandleGetUserByID)
 	})
 	
 	r.Route("/posts", func(r chi.Router) {
