@@ -10,7 +10,7 @@ import (
 type PostRepo interface {
     CreatePost(payload *PostPayload) (*models.Post, error)
     GetPost(id string) (*models.Post, error)
-    GetAllPosts() ([]*models.Post, error)
+    GetAllPosts(offset, limit int) ([]*models.Post, error)
         GetPostsByUser(userID string) ([]*models.Post, error)
         UpdatePost(postID string, payload *PostPayload) (*models.Post, error)
         DeletePost(postID string) error
@@ -63,15 +63,16 @@ func (r *postRepo) GetPost(id string) (*models.Post, error) {
     return &post, nil
 }
 
-func (r *postRepo) GetAllPosts() ([]*models.Post, error) {
+func (r *postRepo) GetAllPosts(offset, limit int) ([]*models.Post, error) {
     var posts []*models.Post
-    query := "SELECT * FROM posts ORDER BY created_at DESC"
-    err := r.db.Select(&posts, query)
+    query := "SELECT * FROM posts ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+    err := r.db.Select(&posts, query, limit, offset)
     if err != nil {
         return nil, fmt.Errorf("error getting posts: %w", err)
     }
     return posts, nil
 }
+
 
 func (r *postRepo) GetPostsByUser(userID string) ([]*models.Post, error) {
     var posts []*models.Post

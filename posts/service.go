@@ -11,7 +11,7 @@ import (
 type PostService interface {
 	CreatePost(token string, payload *PostPayload) (*models.Post, error)
 	GetPost(id string) (*models.Post, error)
-    GetAllPosts() ([]*models.Post, error)
+     GetAllPosts(offset, limit int) ([]*models.Post, error)
     GetPostsByUser(userID string) ([]*models.Post, error)
     UpdatePost(token string, postID string, payload *PostPayload) (*models.Post, error)
     DeletePost(token string, postID string) error
@@ -51,9 +51,10 @@ func (s *postService) GetPost(id string) (*models.Post, error) {
 	return s.repo.GetPost(id)
 }
 
-func (s *postService) GetAllPosts() ([]*models.Post, error) {
-    return s.repo.GetAllPosts()
+func (s *postService) GetAllPosts(offset, limit int) ([]*models.Post, error) {
+    return s.repo.GetAllPosts(offset, limit)
 }
+
 
 func (s *postService) GetPostsByUser(userID string) ([]*models.Post, error) {
     return s.repo.GetPostsByUser(userID)

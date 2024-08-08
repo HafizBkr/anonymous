@@ -6,6 +6,7 @@ import (
 	"strings"
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
+	"strconv"
 )
 
 func CreatePostHandler(service PostService) http.HandlerFunc {
@@ -34,14 +35,32 @@ func CreatePostHandler(service PostService) http.HandlerFunc {
 
 func GetAllPostsHandler(service PostService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		posts, err := service.GetAllPosts()
+		// Récupérer les paramètres de pagination depuis la requête
+		offsetStr := r.URL.Query().Get("offset")
+		limitStr := r.URL.Query().Get("limit")
+
+		// Convertir les paramètres en entiers
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil {
+			offset = 0 // Valeur par défaut
+		}
+
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil || limit <= 0 {
+			limit = 10 // Valeur par défaut
+		}
+
+		// Récupérer les posts avec pagination
+		posts, err := service.GetAllPosts(offset, limit)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
 		jsonResponse(w, http.StatusOK, posts)
 	}
 }
+
 
 func GetPostsByUserHandler(service PostService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
