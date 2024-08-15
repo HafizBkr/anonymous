@@ -56,7 +56,19 @@ func (r *commentRepo) CreateComment(payload *CommentPayload) (*models.Comment, e
 
 func (r *commentRepo) GetCommentsByPostID(postID string) ([]*models.Comment, error) {
     var comments []*models.Comment
-    query := "SELECT * FROM comments WHERE post_id = $1 ORDER BY created_at ASC"
+    query := `
+        SELECT 
+            c.*, 
+            u.username 
+        FROM 
+            comments c
+        JOIN 
+            users u ON c.user_id = u.id
+        WHERE 
+            c.post_id = $1 
+        ORDER BY 
+            c.created_at ASC
+    `
     err := r.db.Select(&comments, query, postID)
     if err != nil {
         return nil, fmt.Errorf("error getting comments: %w", err)
@@ -64,15 +76,27 @@ func (r *commentRepo) GetCommentsByPostID(postID string) ([]*models.Comment, err
     return comments, nil
 }
 
+
 func (r *commentRepo) GetComment(id string) (*models.Comment, error) {
     var comment models.Comment
-    query := "SELECT * FROM comments WHERE id = $1"
+    query := `
+        SELECT 
+            c.*, 
+            u.username 
+        FROM 
+            comments c
+        JOIN 
+            users u ON c.user_id = u.id
+        WHERE 
+            c.id = $1
+    `
     err := r.db.Get(&comment, query, id)
     if err != nil {
         return nil, fmt.Errorf("error getting comment: %w", err)
     }
     return &comment, nil
 }
+
 
 func (r *commentRepo) UpdateComment(id string, payload *UpdateCommentPayload, userID string) (*models.Comment, error) {
     if validationErrors := payload.Validate(); len(validationErrors) > 0 {

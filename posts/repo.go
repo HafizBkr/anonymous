@@ -65,7 +65,19 @@ func (r *postRepo) GetPost(id string) (*models.Post, error) {
 
 func (r *postRepo) GetAllPosts(offset, limit int) ([]*models.Post, error) {
     var posts []*models.Post
-    query := "SELECT * FROM posts ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+    query := `
+        SELECT 
+            p.*, 
+            u.username 
+        FROM 
+            posts p
+        JOIN 
+            users u ON p.user_id = u.id
+        ORDER BY 
+            p.created_at DESC 
+        LIMIT 
+            $1 OFFSET $2
+    `
     err := r.db.Select(&posts, query, limit, offset)
     if err != nil {
         return nil, fmt.Errorf("error getting posts: %w", err)
@@ -74,12 +86,25 @@ func (r *postRepo) GetAllPosts(offset, limit int) ([]*models.Post, error) {
 }
 
 
+
 func (r *postRepo) GetPostsByUser(userID string) ([]*models.Post, error) {
     var posts []*models.Post
-    query := "SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC"
+    query := `
+        SELECT 
+            p.*, 
+            u.username 
+        FROM 
+            posts p
+        JOIN 
+            users u ON p.user_id = u.id
+        WHERE 
+            p.user_id = $1 
+        ORDER BY 
+            p.created_at DESC
+    `
     err := r.db.Select(&posts, query, userID)
     if err != nil {
-        return nil, fmt.Errorf("error getting posts: %w", err)
+        return nil, fmt.Errorf("error getting posts by user: %w", err)
     }
     return posts, nil
 }

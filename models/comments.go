@@ -5,6 +5,7 @@ import "time"
 type Comment struct {
     ID          string    `db:"id" json:"id"`
     UserID      string    `db:"user_id" json:"user_id"`
+    Username    string    `db:"username" json:"username"`
     PostID      string    `db:"post_id" json:"post_id"`
     ContentType string    `db:"content_type" json:"content_type"`
     Content     string    `db:"content" json:"content"`

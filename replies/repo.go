@@ -51,7 +51,19 @@ func (r *commentReplyRepo) CreateCommentReply(payload *CommentReplyPayload) (*mo
 
 func (r *commentReplyRepo) GetCommentRepliesByCommentID(commentID string) ([]*models.CommentReply, error) {
     var replies []*models.CommentReply
-    query := "SELECT * FROM comment_replies WHERE comment_id = $1 ORDER BY created_at ASC"
+    query := `
+        SELECT 
+            cr.*, 
+            u.username 
+        FROM 
+            comment_replies cr
+        JOIN 
+            users u ON cr.user_id = u.id
+        WHERE 
+            cr.comment_id = $1 
+        ORDER BY 
+            cr.created_at ASC
+    `
     err := r.db.Select(&replies, query, commentID)
     if err != nil {
         return nil, fmt.Errorf("error getting comment replies: %w", err)
@@ -59,15 +71,27 @@ func (r *commentReplyRepo) GetCommentRepliesByCommentID(commentID string) ([]*mo
     return replies, nil
 }
 
+
 func (r *commentReplyRepo) GetCommentReply(id string) (*models.CommentReply, error) {
     var reply models.CommentReply
-    query := "SELECT * FROM comment_replies WHERE id = $1"
+    query := `
+        SELECT 
+            cr.*, 
+            u.username 
+        FROM 
+            comment_replies cr
+        JOIN 
+            users u ON cr.user_id = u.id
+        WHERE 
+            cr.id = $1
+    `
     err := r.db.Get(&reply, query, id)
     if err != nil {
         return nil, fmt.Errorf("error getting comment reply: %w", err)
     }
     return &reply, nil
 }
+
 
 func (r *commentReplyRepo) UpdateCommentReply(id string, payload *UpdateCommentReplyPayload, userID string) (*models.CommentReply, error) {
     if validationErrors := payload.Validate(); len(validationErrors) > 0 {

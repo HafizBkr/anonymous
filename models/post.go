@@ -5,6 +5,7 @@ import "time"
 type Post struct {
     ID            string    `json:"id" db:"id"`
     UserID        string    `json:"user_id" db:"user_id"`
+    Username      string    `json:"username" db:"username"`
     ContentType   string    `json:"content_type" db:"content_type"`
     Content       string    `json:"content" db:"content"`
     Description   string    `json:"description" db:"description"`

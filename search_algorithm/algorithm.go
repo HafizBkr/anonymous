@@ -19,8 +19,9 @@ func NewSearchService(db *sqlx.DB) SearchService {
 }
 
 type SearchResults struct {
-    Users []*models.User `json:"users"`
-    Posts []*models.Post `json:"posts"`
+    Users      []*models.User      `json:"users"`
+    Posts      []*models.Post      `json:"posts"`
+    Communities []*models.Community `json:"communities"`
 }
 
 func (s *searchService) Search(query string) (*SearchResults, error) {
@@ -56,6 +57,22 @@ func (s *searchService) Search(query string) (*SearchResults, error) {
             return nil, fmt.Errorf("error scanning post: %w", err)
         }
         results.Posts = append(results.Posts, &post)
+    }
+
+    // Recherche des communautés
+    communitiesQuery := `SELECT id, name, description, creator_id, created_at FROM communities WHERE name ILIKE $1 OR description ILIKE $1`
+    communitiesRows, err := s.db.Queryx(communitiesQuery, "%"+query+"%")
+    if err != nil {
+        return nil, fmt.Errorf("error searching communities: %w", err)
+    }
+    defer communitiesRows.Close()
+
+    for communitiesRows.Next() {
+        var community models.Community
+        if err := communitiesRows.StructScan(&community); err != nil {
+            return nil, fmt.Errorf("error scanning community: %w", err)
+        }
+        results.Communities = append(results.Communities, &community)
     }
 
     return &results, nil
