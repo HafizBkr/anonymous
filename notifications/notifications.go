@@ -1,7 +1,7 @@
 package notifications
 
 import (
-    "time"
+	"time"
 )
 
 type NotificationService interface {
