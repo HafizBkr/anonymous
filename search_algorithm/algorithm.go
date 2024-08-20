@@ -51,6 +51,7 @@ func (s *searchService) Search(query string, limit int, offset int) (*SearchResu
             p.user_id,
             p.content,
             p.created_at,
+            p.content_type,
             u.username
         FROM
             posts p
