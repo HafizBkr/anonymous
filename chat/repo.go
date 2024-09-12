@@ -1,11 +1,12 @@
 package chat
 
 import (
-    "time"
-    "github.com/google/uuid"
-    "github.com/jmoiron/sqlx"
-    "anonymous/models"
-    "database/sql"
+	"anonymous/models"
+	"database/sql"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 )
 
 type MessageRepository struct {
@@ -146,4 +147,53 @@ func (mr *MessageRepository) DeleteMessageForAll(messageID string) error {
         DELETE FROM messages
         WHERE id = $1`, messageID)
     return err
+}
+
+func (mr *MessageRepository) GetConversations(userID string) ([]*models.Conversation, error) {
+    query := `
+        SELECT
+            CASE
+                WHEN from_user_id = $1 THEN to_user_id
+                ELSE from_user_id
+            END AS user_id,
+            (SELECT username FROM users WHERE id =
+                CASE
+                    WHEN from_user_id = $1 THEN to_user_id
+                    ELSE from_user_id
+                END
+            ) AS username,
+            (SELECT profile_picture FROM users WHERE id =
+                CASE
+                    WHEN from_user_id = $1 THEN to_user_id
+                    ELSE from_user_id
+                END
+            ) AS profile_picture,
+            id AS last_message_id,
+            content AS last_message_content,
+            sent_at AS last_message_sent_at
+        FROM messages
+        WHERE from_user_id = $1 OR to_user_id = $1
+        ORDER BY sent_at DESC
+    `
+
+    rows, err := mr.db.Queryx(query, userID)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var conversations []*models.Conversation
+    for rows.Next() {
+        var conversation models.Conversation
+        if err := rows.StructScan(&conversation); err != nil {
+            return nil, err
+        }
+        conversations = append(conversations, &conversation)
+    }
+
+    if err := rows.Err(); err != nil {
+        return nil, err
+    }
+
+    return conversations, nil
 }
