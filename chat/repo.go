@@ -10,147 +10,156 @@ import (
 )
 
 type MessageRepository struct {
-    db *sqlx.DB
+	db *sqlx.DB
 }
 
 func NewMessageRepository(db *sqlx.DB) *MessageRepository {
-    return &MessageRepository{db: db}
+	return &MessageRepository{db: db}
 }
 
 func (mr *MessageRepository) CreateMessage(message *models.Message) error {
-    _, err := mr.db.Exec(`
+	_, err := mr.db.Exec(`
         INSERT INTO messages (id, from_user_id, to_user_id, content, sent_at)
         VALUES ($1, $2, $3, $4, $5)`,
-        uuid.New().String(), message.From, message.To, message.Content, time.Now())
-    if err != nil {
-        return err
-    }
-    return nil
+		uuid.New().String(), message.From, message.To, message.Content, time.Now())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (mr *MessageRepository) GetMessage(id string) (*models.Message, error) {
-    var message models.Message
-    err := mr.db.QueryRow(`
+	var message models.Message
+	err := mr.db.QueryRow(`
         SELECT id, from_user_id, to_user_id, content, sent_at
         FROM messages
         WHERE id = $1`, id).Scan(&message.ID, &message.From, &message.To, &message.Content, &message.SentAt)
-    if err == sql.ErrNoRows {
-        return nil, nil
-    }
-    return &message, err
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return &message, err
 }
 func (mr *MessageRepository) UpdateMessageContent(id string, content string) error {
-    _, err := mr.db.Exec(`
+	_, err := mr.db.Exec(`
         UPDATE messages
         SET content = $1
         WHERE id = $2`,
-        content, id)
-    if err != nil {
-        return err
-    }
-    return nil
+		content, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (mr *MessageRepository) DeleteMessage(id string) error {
-    _, err := mr.db.Exec(`
+	_, err := mr.db.Exec(`
         DELETE FROM messages
         WHERE id = $1`, id)
-    if err != nil {
-        return err
-    }
-    return nil
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (mr *MessageRepository) GetMessagesBetweenUsers(user1ID, user2ID string) ([]*models.Message, error) {
-    var messages []*models.Message
+	var messages []*models.Message
 
-    query := `
-        SELECT id, from_user_id, to_user_id, content, sent_at
-        FROM messages
-        WHERE (from_user_id = $1 AND to_user_id = $2)
-           OR (from_user_id = $2 AND to_user_id = $1)
-        ORDER BY sent_at`
+	query := `
+    SELECT m.id,
+           m.from_user_id,
+           m.to_user_id,
+           m.content,
+           m.sent_at,
+           u1.username AS from_user_username,
+           u2.username AS to_user_username
+    FROM messages m
+    JOIN users u1 ON m.from_user_id = u1.id
+    JOIN users u2 ON m.to_user_id = u2.id
+    WHERE (m.from_user_id = $1 AND m.to_user_id = $2)
+       OR (m.from_user_id = $2 AND m.to_user_id = $1)
+    ORDER BY m.sent_at;
+`
 
-    rows, err := mr.db.Queryx(query, user1ID, user2ID)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	rows, err := mr.db.Queryx(query, user1ID, user2ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    for rows.Next() {
-        var message models.Message
-        if err := rows.StructScan(&message); err != nil {
-            return nil, err
-        }
-        messages = append(messages, &message)
-    }
+	for rows.Next() {
+		var message models.Message
+		if err := rows.StructScan(&message); err != nil {
+			return nil, err
+		}
+		messages = append(messages, &message)
+	}
 
-    if err := rows.Err(); err != nil {
-        return nil, err
-    }
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
-    return messages, nil
+	return messages, nil
 }
 
 func (mr *MessageRepository) GetMessagesByOwner(userID string) ([]models.Message, error) {
-    var messages []models.Message
-    err := mr.db.Select(&messages, `
+	var messages []models.Message
+	err := mr.db.Select(&messages, `
         SELECT id, from_user_id, to_user_id, content, sent_at
         FROM messages
         WHERE from_user_id = $1
         ORDER BY sent_at ASC`, userID)
-    if err != nil {
-        return nil, err
-    }
-    return messages, nil
+	if err != nil {
+		return nil, err
+	}
+	return messages, nil
 }
 
 func (mr *MessageRepository) GetMessagesInChat(user1ID, user2ID string) ([]models.Message, error) {
-    var messages []models.Message
-    err := mr.db.Select(&messages, `
+	var messages []models.Message
+	err := mr.db.Select(&messages, `
         SELECT id, from_user_id, to_user_id, content, sent_at,
                from_user_id = $1 as owner
         FROM messages
         WHERE (from_user_id = $1 AND to_user_id = $2)
            OR (from_user_id = $2 AND to_user_id = $1)
         ORDER BY sent_at ASC`, user1ID, user2ID)
-    if err != nil {
-        return nil, err
-    }
-    return messages, nil
+	if err != nil {
+		return nil, err
+	}
+	return messages, nil
 }
 func (mr *MessageRepository) IsMessageOwner(messageID, userID string) (bool, error) {
-    var ownerID string
-    err := mr.db.Get(&ownerID, `
+	var ownerID string
+	err := mr.db.Get(&ownerID, `
         SELECT from_user_id
         FROM messages
         WHERE id = $1`, messageID)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            return false, nil
-        }
-        return false, err
-    }
-    return ownerID == userID, nil
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return ownerID == userID, nil
 }
 
 func (mr *MessageRepository) HideMessageForUser(messageID, userID string) error {
-    _, err := mr.db.Exec(`
+	_, err := mr.db.Exec(`
         UPDATE messages
         SET hidden_for = array_append(hidden_for, $1)
         WHERE id = $2`, userID, messageID)
-    return err
+	return err
 }
 
 func (mr *MessageRepository) DeleteMessageForAll(messageID string) error {
-    _, err := mr.db.Exec(`
+	_, err := mr.db.Exec(`
         DELETE FROM messages
         WHERE id = $1`, messageID)
-    return err
+	return err
 }
 
 func (mr *MessageRepository) GetConversations(userID string) ([]*models.Conversation, error) {
-    query := `
+	query := `
         SELECT
             CASE
                 WHEN from_user_id = $1 THEN to_user_id
@@ -176,24 +185,24 @@ func (mr *MessageRepository) GetConversations(userID string) ([]*models.Conversa
         ORDER BY sent_at DESC
     `
 
-    rows, err := mr.db.Queryx(query, userID)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	rows, err := mr.db.Queryx(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var conversations []*models.Conversation
-    for rows.Next() {
-        var conversation models.Conversation
-        if err := rows.StructScan(&conversation); err != nil {
-            return nil, err
-        }
-        conversations = append(conversations, &conversation)
-    }
+	var conversations []*models.Conversation
+	for rows.Next() {
+		var conversation models.Conversation
+		if err := rows.StructScan(&conversation); err != nil {
+			return nil, err
+		}
+		conversations = append(conversations, &conversation)
+	}
 
-    if err := rows.Err(); err != nil {
-        return nil, err
-    }
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
-    return conversations, nil
+	return conversations, nil
 }

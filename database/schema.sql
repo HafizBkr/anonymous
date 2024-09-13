@@ -161,3 +161,42 @@ CREATE TABLE notifications (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (actor_id) REFERENCES users(id)
 );
+
+ALTER TABLE users
+ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+CREATE TABLE stories (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    duration INT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE story_contents (
+    id UUID PRIMARY KEY,
+    story_id UUID NOT NULL,
+    type VARCHAR(10) CHECK (type IN ('text', 'image')),
+    content TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (story_id) REFERENCES stories(id) ON DELETE CASCADE
+);
+
+-- Table for story likes
+CREATE TABLE story_likes (
+    id UUID PRIMARY KEY,
+    story_id UUID REFERENCES stories(id),
+    user_id UUID REFERENCES users(id),
+    liked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table for story responses
+CREATE TABLE story_responses (
+    id UUID PRIMARY KEY,
+    story_id UUID REFERENCES stories(id),
+    user_id UUID REFERENCES users(id),
+    message TEXT,
+    responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
