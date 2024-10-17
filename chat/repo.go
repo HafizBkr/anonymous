@@ -181,7 +181,14 @@ func (mr *MessageRepository) GetConversations(userID string) ([]*models.Conversa
             content AS last_message_content,
             sent_at AS last_message_sent_at
         FROM messages
-        WHERE from_user_id = $1 OR to_user_id = $1
+        WHERE (from_user_id = $1 OR to_user_id = $1)
+          AND id = (
+              SELECT id FROM messages AS sub
+              WHERE (sub.from_user_id = messages.from_user_id AND sub.to_user_id = messages.to_user_id)
+                 OR (sub.from_user_id = messages.to_user_id AND sub.to_user_id = messages.from_user_id)
+              ORDER BY sent_at DESC
+              LIMIT 1
+          )
         ORDER BY sent_at DESC
     `
 
