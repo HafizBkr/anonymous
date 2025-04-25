@@ -69,10 +69,6 @@ func (p *loginPayload) Validate() (err map[string]string) {
 	return nil
 }
 
-
-
-// In auth/payloads.go
-
 type forgotPasswordPayload struct {
     Email string `json:"email"`
 }

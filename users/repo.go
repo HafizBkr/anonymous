@@ -282,8 +282,6 @@ func (r *UserRepo) VerifyEmail(token string) error {
 
 
 
-// In users/repository.go
-
 // SetPasswordResetToken stores a password reset token for a user
 func (r *UserRepo) SetPasswordResetToken(email, token string) error {
     query := `UPDATE users SET password_reset_token = $1 WHERE email = $2`
