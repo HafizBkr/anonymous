@@ -1,5 +1,4 @@
 
-<<<<<<< HEAD
 # Anonymous - Backend API
 
 ## Description
@@ -132,17 +131,3 @@ Les fichiers statiques sont servis depuis le dossier `./static` via le chemin `/
 ## Surveillance
 
 - Endpoint `GET /health` : vérifie si le serveur est en ligne.
-=======
-# bref ce fut un projet test
-# moov_game
-# moov_game
-
--- Se connecter avec un utilisateur ayant des privilèges d'administrateur
-psql -U postgres
-
--- Vérifier les rôles et privilèges
-\du
-
--- Si l'utilisateur tess n'a pas les privilèges nécessaires, les accorder
-GRANT ALL PRIVILEGES ON DATABASE neondb TO tess;
->>>>>>> 1d857a6 (Mise à jour du README avant changement de branche)
