@@ -2,22 +2,26 @@ package models
 
 import (
 	"time"
+    "database/sql"
 )
 
-type User struct {
-    ID             string    `json:"id" db:"id"`
-    Email          string    `json:"email" db:"email"`
-    Username       string    `json:"username" db:"username"`
-    Password       string       `json:"password_hash" db:"password_hash"`
-    JoinedAt       time.Time `json:"joined_at" db:"joined_at"`
-    Active         bool      `json:"active" db:"active"`
-    ProfilePicture string    `json:"profile_picture" db:"profile_picture"`
-    EmailVerified  bool      `json:"email_verified" db:"email_verified"`
-    EmailVerificationToken string `json:"email_verification_token" db:"email_verification_token"`
-}
+// In models/user.go (or wherever your User struct is defined)
 
+type User struct {
+    ID                    string    `db:"id" json:"id"`
+    Username              string    `db:"username" json:"username"`
+    Password              string    `db:"password_hash" json:"-"`
+    Email                 string    `db:"email" json:"email"`
+    EmailVerified         bool      `db:"email_verified" json:"email_verified"`
+    JoinedAt              time.Time `db:"joined_at" json:"joined_at"`
+    Active                bool      `db:"active" json:"active"`
+    ProfilePicture        string    `db:"profile_picture" json:"profile_picture"`
+    EmailVerificationToken string    `db:"email_verification_token" json:"-"`
+    PasswordResetToken    sql.NullString `db:"password_reset_token"`
+}
 
 type LoggedInUser struct {
 	User
 	Token string `json:"token"`
 }
+

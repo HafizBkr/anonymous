@@ -107,6 +107,8 @@ func main() {
 		r.Post("/register", authHandler.HandleRegistration)
 		r.Post("/login", authHandler.HandleLogin)
 		r.Get("/verify-email", authHandler.HandleEmailVerification)
+		r.Post("/forgot-password", authHandler.HandleForgotPassword)  
+		r.Post("/reset-password", authHandler.HandleResetPassword)
 	})
 
 	r.Route("/users", func(r chi.Router) {

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"anonymous/types"
+	"fmt"
 )
 
 
@@ -16,7 +17,9 @@ import (
 type IAuthService interface {
 	Register(*registrationPayload) (*string, *models.LoggedInUser, error)
 	Login(*loginPayload) (*string, *models.LoggedInUser, error)
-	  VerifyEmail(token string) error  
+	VerifyEmail(token string) error  
+	ForgotPassword(email string) error
+	ResetPassword(data *resetPasswordPayload) error
 }
 
 type AuthHandler struct {
@@ -121,5 +124,65 @@ func (h *AuthHandler) HandleEmailVerification(w http.ResponseWriter, r *http.Req
     http.Redirect(w, r, "/static/verified.html", http.StatusSeeOther)
 }
 
+// In auth/handler.go
+
+// Add these methods to your AuthHandler struct
+
+func (h *AuthHandler) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
+    payload := &forgotPasswordPayload{}
+    err := json.NewDecoder(r.Body).Decode(payload)
+    if err != nil {
+        utils.HandleBodyDecodingErr(w, err, h.logger)
+        return
+    }
+    
+	errs := payload.Validate()
+	if len(errs) > 0 {
+		errMap := make(map[string]string)
+		for i, err := range errs {
+			errMap[fmt.Sprintf("error_%d", i)] = err
+		}
+		utils.WriteValidationError(w, errMap)
+		return
+	}
+    err = h.service.ForgotPassword(payload.Email)
+    if err != nil {
+        utils.WriteError(w, err)
+        return
+    }
+    
+    utils.WriteData(w, http.StatusOK, map[string]interface{}{
+        "message": "If the email exists in our system, a password reset link has been sent",
+    })
+}
+
+func (h *AuthHandler) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
+    payload := &resetPasswordPayload{}
+    err := json.NewDecoder(r.Body).Decode(payload)
+    if err != nil {
+        utils.HandleBodyDecodingErr(w, err, h.logger)
+        return
+    }
+    
+	errs := payload.Validate()
+	if len(errs) > 0 {
+		errMap := make(map[string]string)
+		for i, err := range errs {
+			errMap[fmt.Sprintf("error_%d", i)] = err
+		}
+		utils.WriteValidationError(w, errMap)
+		return
+	}
+    
+    err = h.service.ResetPassword(payload)
+    if err != nil {
+        utils.WriteError(w, err)
+        return
+    }
+    
+    utils.WriteData(w, http.StatusOK, map[string]interface{}{
+        "message": "Password has been reset successfully",
+    })
+}
 
 

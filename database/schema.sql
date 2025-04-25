@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     active BOOLEAN NOT NULL DEFAULT true,
     email_verified BOOLEAN NOT NULL DEFAULT false,
     profile_picture TEXT NOT NULL DEFAULT ''
-     email_verification_token TEXT
+    email_verification_token TEXT
 );
 
 -- Table des publications
@@ -200,3 +200,6 @@ CREATE TABLE story_responses (
     message TEXT,
     responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR(255);

@@ -280,3 +280,68 @@ func (r *UserRepo) VerifyEmail(token string) error {
 	return nil
 }
 
+
+
+// In users/repository.go
+
+// SetPasswordResetToken stores a password reset token for a user
+func (r *UserRepo) SetPasswordResetToken(email, token string) error {
+    query := `UPDATE users SET password_reset_token = $1 WHERE email = $2`
+    result, err := r.db.Exec(query, token, email)
+    if err != nil {
+        return fmt.Errorf("error setting password reset token: %w", err)
+    }
+    
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        return fmt.Errorf("error getting rows affected: %w", err)
+    }
+    
+    if rowsAffected == 0 {
+        return commons.Errors.ResourceNotFound
+    }
+    
+    return nil
+}
+
+// FindByPasswordResetToken finds a user by their password reset token
+func (r *UserRepo) FindByPasswordResetToken(token string) (*models.User, error) {
+    query := `
+        SELECT id, email, username, password_hash, joined_at, active, profile_picture, 
+               email_verified, email_verification_token, password_reset_token
+        FROM users
+        WHERE password_reset_token = $1
+    `
+    var user models.User
+    err := r.db.QueryRow(query, token).Scan(
+        &user.ID, &user.Email, &user.Username, &user.Password, &user.JoinedAt, &user.Active,
+        &user.ProfilePicture, &user.EmailVerified, &user.EmailVerificationToken, &user.PasswordResetToken,
+    )
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return nil, commons.Errors.ResourceNotFound
+        }
+        return nil, fmt.Errorf("error finding user by reset token: %w", err)
+    }
+    return &user, nil
+}
+
+// UpdatePassword updates a user's password
+func (r *UserRepo) UpdatePassword(userID, newPasswordHash string) error {
+    query := `UPDATE users SET password_hash = $1, password_reset_token = NULL WHERE id = $2`
+    result, err := r.db.Exec(query, newPasswordHash, userID)
+    if err != nil {
+        return fmt.Errorf("error updating password: %w", err)
+    }
+    
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        return fmt.Errorf("error getting rows affected: %w", err)
+    }
+    
+    if rowsAffected == 0 {
+        return commons.Errors.ResourceNotFound
+    }
+    
+    return nil
+}

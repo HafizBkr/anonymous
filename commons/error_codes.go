@@ -16,6 +16,7 @@ type errorCodes struct {
   InvalidToken string
 	InvalidVerificationToken string
 	EmailNotVerified string
+	InvalidResetToken string
 }
 
 var Codes = errorCodes{
@@ -30,4 +31,6 @@ var Codes = errorCodes{
     InvalidToken: "InvalidToken",
     InvalidVerificationToken: "InvalidVerificationToken",
     EmailNotVerified: "EmailNotVerified",
+	InvalidResetToken: "InvalidResetToken",
+	DuplicateLabel: "DuplicateLabel",
 }

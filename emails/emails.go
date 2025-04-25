@@ -89,3 +89,19 @@ func (sender Sender) SendVerificationEmail(dest []string, token string) error {
 	message := sender.WriteHTMLEmail(dest, subject, bodyMessage)
 	return sender.SendMail(dest, subject, message)
 }
+
+
+func (sender Sender) SendPasswordResetEmail(dest []string, token string) error {
+    resetLink := fmt.Sprintf("https://anonymous-4jef.onrender.com/reset-password?token=%s", token)
+    subject := "Password Reset Request"
+    bodyMessage := fmt.Sprintf(`
+        <h1>Password Reset</h1>
+        <p>You requested a password reset. Click the link below to reset your password:</p>
+        <p><a href="%s">Reset Password</a></p>
+        <p>If you did not request a password reset, please ignore this email.</p>
+        <p>This link will expire in 24 hours.</p>
+    `, resetLink)
+    
+    message := sender.WriteHTMLEmail(dest, subject, bodyMessage)
+    return sender.SendMail(dest, subject, message)
+}

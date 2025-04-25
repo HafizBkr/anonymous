@@ -27,7 +27,11 @@ type UserRepo interface {
 	VerifyEmail(token string) error 
 	SetEmailVerificationToken(userID, token string) error
 	FindByVerificationToken(token string) (*models.User, error)
-	Update(user *models.User) error
+	Update(user *models.User) error 
+	SetPasswordResetToken(email, token string) error
+	FindByPasswordResetToken(token string) (*models.User, error)
+	GetUserByEmail(email string) (*models.User, error)
+	UpdatePassword(userID, password string) error
 }
 
 type AuthService struct {
@@ -229,4 +233,71 @@ func (s *AuthService) ValidateToken(tokenString string) (string, error) {
         return "", err
     }
     return userID, nil
+}
+
+
+// ForgotPassword initiates the password reset process for a user
+func (s *AuthService) ForgotPassword(email string) error {
+	 // Generate a reset token
+	 resetToken := uuid.New().String()
+    
+	 // Store the reset token in the database
+	 if err := s.users.SetPasswordResetToken(email, resetToken); err != nil {
+		 s.logger.Error(err.Error())
+		 return commons.Errors.InternalServerError
+	 }
+    // Find user by email to ensure they exist
+    _, err := s.users.GetUserByEmail(email)
+    if err != nil {
+        if errors.Is(err, commons.Errors.ResourceNotFound) {
+            return nil
+        }
+        s.logger.Error(err.Error())
+        return commons.Errors.InternalServerError
+    }
+    
+   
+    
+    // Send the password reset email
+    emailAddr := os.Getenv("EMAIL")
+    password := os.Getenv("PASSWORD")
+    sender := emails.NewSender(emailAddr, password)
+    
+    if err := sender.SendPasswordResetEmail([]string{email}, resetToken); err != nil {
+        s.logger.Error(fmt.Sprintf("Error sending password reset email: %s", err))
+        return commons.Errors.InternalServerError
+    }
+    
+    return nil
+}
+
+// ResetPassword completes the password reset process
+func (s *AuthService) ResetPassword(data *resetPasswordPayload) error {
+    // Find user by reset token
+    user, err := s.users.FindByPasswordResetToken(data.Token)
+    if err != nil {
+        if errors.Is(err, commons.Errors.ResourceNotFound) {
+            return types.ServiceError{
+                StatusCode: http.StatusBadRequest,
+                ErrorCode:  commons.Codes.InvalidResetToken,
+            }
+        }
+        s.logger.Error(err.Error())
+        return commons.Errors.InternalServerError
+    }
+    
+    // Hash the new password
+    hash, err := helpers.Hash(data.NewPassword)
+    if err != nil {
+        s.logger.Error(err.Error())
+        return commons.Errors.InternalServerError
+    }
+    
+    // Update the user's password
+    if err := s.users.UpdatePassword(user.ID, hash); err != nil {
+        s.logger.Error(err.Error())
+        return commons.Errors.InternalServerError
+    }
+    
+    return nil
 }
