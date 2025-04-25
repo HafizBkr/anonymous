@@ -19,6 +19,7 @@ type errs struct {
 	BadRequest error
 	DuplicateLike error
 	ErrInvalidToken error
+	InvalidLoginMethod error
 }
 
 var Errors = errs{

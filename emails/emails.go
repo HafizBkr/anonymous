@@ -1,6 +1,7 @@
 package emails
 
 import (
+	"anonymous/encryption"
 	"bytes"
 	"fmt"
 	"mime/quotedprintable"
@@ -82,16 +83,55 @@ func (sender *Sender) WritePlainEmail(dest []string, subject, bodyMessage string
 	return sender.WriteEmail(dest, ContentTypePlainText, subject, bodyMessage)
 }
 
+// Vérifie si une chaîne est un email chiffré et la déchiffre si nécessaire
+func ensureDecryptedEmail(email string) (string, error) {
+	ee, err := encryption.NewEmailEncryption()
+	if err != nil {
+		return "", fmt.Errorf("erreur lors de l'initialisation du chiffrement: %w", err)
+	}
+	
+	// Si l'email semble être chiffré, essayons de le déchiffrer
+	if ee.IsEncrypted(email) {
+		decryptedEmail, err := ee.DecryptEmail(email)
+		if err != nil {
+			return "", fmt.Errorf("erreur lors du déchiffrement de l'email: %w", err)
+		}
+		return decryptedEmail, nil
+	}
+	
+	// Sinon, on suppose que c'est déjà un email en clair
+	return email, nil
+}
+
 func (sender Sender) SendVerificationEmail(dest []string, token string) error {
+	// S'assurer que les emails ne sont pas chiffrés
+	decryptedDest := make([]string, len(dest))
+	for i, email := range dest {
+		decrypted, err := ensureDecryptedEmail(email)
+		if err != nil {
+			return err
+		}
+		decryptedDest[i] = decrypted
+	}
+	
 	verificationLink := fmt.Sprintf("https://anonymous-4jef.onrender.com/auth/verify-email?token=%s", token)
 	subject := "Please verify your email address"
 	bodyMessage := fmt.Sprintf("Click the following link to verify your email address: <a href=\"%s\">%s</a>", verificationLink, verificationLink)
-	message := sender.WriteHTMLEmail(dest, subject, bodyMessage)
-	return sender.SendMail(dest, subject, message)
+	message := sender.WriteHTMLEmail(decryptedDest, subject, bodyMessage)
+	return sender.SendMail(decryptedDest, subject, message)
 }
 
-
 func (sender Sender) SendPasswordResetEmail(dest []string, token string) error {
+	// S'assurer que les emails ne sont pas chiffrés
+	decryptedDest := make([]string, len(dest))
+	for i, email := range dest {
+		decrypted, err := ensureDecryptedEmail(email)
+		if err != nil {
+			return err
+		}
+		decryptedDest[i] = decrypted
+	}
+	
     resetLink := fmt.Sprintf("https://anonymous-4jef.onrender.com/reset-password?token=%s", token)
     subject := "Password Reset Request"
     bodyMessage := fmt.Sprintf(`
@@ -102,6 +142,6 @@ func (sender Sender) SendPasswordResetEmail(dest []string, token string) error {
         <p>This link will expire in 24 hours.</p>
     `, resetLink)
     
-    message := sender.WriteHTMLEmail(dest, subject, bodyMessage)
-    return sender.SendMail(dest, subject, message)
+    message := sender.WriteHTMLEmail(decryptedDest, subject, bodyMessage)
+    return sender.SendMail(decryptedDest, subject, message)
 }
