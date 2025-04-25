@@ -69,3 +69,44 @@ func (p *loginPayload) Validate() (err map[string]string) {
 	return nil
 }
 
+
+
+// In auth/payloads.go
+
+type forgotPasswordPayload struct {
+    Email string `json:"email"`
+}
+
+func (p *forgotPasswordPayload) Validate() []string {
+    var errors []string
+    if p.Email == "" {
+        errors = append(errors, "Email is required")
+    }
+    return errors
+}
+
+type resetPasswordPayload struct {
+    Token           string `json:"token"`
+    NewPassword     string `json:"new_password"`
+    ConfirmPassword string `json:"confirm_password"`
+}
+
+func (p *resetPasswordPayload) Validate() []string {
+    var errors []string
+    if p.Token == "" {
+        errors = append(errors, "Token is required")
+    }
+    if p.NewPassword == "" {
+        errors = append(errors, "New password is required")
+    }
+    if p.ConfirmPassword == "" {
+        errors = append(errors, "Confirm password is required")
+    }
+    if p.NewPassword != p.ConfirmPassword {
+        errors = append(errors, "Passwords do not match")
+    }
+    if len(p.NewPassword) < 8 {
+        errors = append(errors, "Password must be at least 8 characters long")
+    }
+    return errors
+}
