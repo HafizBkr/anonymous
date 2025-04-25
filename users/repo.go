@@ -28,7 +28,7 @@ func Repo(db *sqlx.DB) *UserRepo {
 func (u *UserRepo) MustInsert(tx *sqlx.Tx, user *models.User) error {
 	// Chiffrement de l'email avant insertion
 	if err := user.EncryptEmail(); err != nil {
-		return fmt.Errorf("Erreur de chiffrement de l'email: %w", err)
+		return fmt.Errorf("erreur de chiffrement de l'email: %w", err)
 	}
 	
 	_, err := tx.NamedExec(`
@@ -51,7 +51,7 @@ func (u *UserRepo) MustInsert(tx *sqlx.Tx, user *models.User) error {
 	})
 	
 	if err != nil {
-		return fmt.Errorf("Error while inserting user: %w", err)
+		return fmt.Errorf("error while inserting user: %w", err)
 	}
 	return nil
 }
@@ -65,7 +65,7 @@ func (r *UserRepo) GetUser(field, value string) (*models.User, error) {
 	if field == "email" {
 		encryptedValue, err := r.ee.EncryptEmail(value)
 		if err != nil {
-			return nil, fmt.Errorf("Erreur de chiffrement de l'email: %w", err)
+			return nil, fmt.Errorf("erreur de chiffrement de l'email: %w", err)
 		}
 		value = encryptedValue
 	}
@@ -77,13 +77,13 @@ func (r *UserRepo) GetUser(field, value string) (*models.User, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, commons.Errors.ResourceNotFound
 		}
-		return nil, fmt.Errorf("Error while retrieving user by %s: %w", field, err)
+		return nil, fmt.Errorf("error while retrieving user by %s: %w", field, err)
 	}
 	
 	// Déchiffrement de l'email
 	if user.EncryptedEmail != "" {
 		if err := user.DecryptEmail(); err != nil {
-			return nil, fmt.Errorf("Erreur de déchiffrement de l'email: %w", err)
+			return nil, fmt.Errorf("erreur de déchiffrement de l'email: %w", err)
 		}
 	}
 	
@@ -133,7 +133,7 @@ func (r *UserRepo) CheckDuplicates(email string) (string, error) {
 		encryptedEmail,
 	).Scan(&result)
 	if err != nil {
-		return "", fmt.Errorf("Error while checking for duplicates: %w", err)
+		return "", fmt.Errorf("error while checking for duplicates: %w", err)
 	}
 	return result, nil
 }
@@ -155,7 +155,7 @@ func (r *UserRepo) CheckDuplicatesU(username string) (string, error) {
 		username,
 	).Scan(&result)
 	if err != nil {
-		return "", fmt.Errorf("Error while checking for duplicates: %w", err)
+		return "", fmt.Errorf("error while checking for duplicates: %w", err)
 	}
 	return result, nil
 }
@@ -186,12 +186,12 @@ func (r *UserRepo) GetUserDataByID(id string) (*models.LoggedInUser, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, commons.Errors.ResourceNotFound
 		}
-		return nil, fmt.Errorf("Error while getting logged in user data: %w", err)
+		return nil, fmt.Errorf("error while getting logged in user data: %w", err)
 	}
 	
 	// Déchiffrer l'email
 	if err := user.DecryptEmail(); err != nil {
-		return nil, fmt.Errorf("Erreur de déchiffrement de l'email: %w", err)
+		return nil, fmt.Errorf("erreur de déchiffrement de l'email: %w", err)
 	}
 	
 	return &user, nil
@@ -200,7 +200,7 @@ func (r *UserRepo) GetUserDataByID(id string) (*models.LoggedInUser, error) {
 func (r *UserRepo) ChangePassword(password, id string) error {
     _, err := r.db.Exec("UPDATE users SET password_hash=$1 WHERE id=$2", password, id)
     if err != nil {
-        return fmt.Errorf("Error while changing user password: %w", err)
+        return fmt.Errorf("error while changing user password: %w", err)
     }
     return nil
 }
@@ -208,7 +208,7 @@ func (r *UserRepo) ChangePassword(password, id string) error {
 func (r *UserRepo) ToggleStatus(users []string, status bool) error {
 	_, err := r.db.Exec("UPDATE users SET active = $1 WHERE id = ANY($2)", status, pq.Array(users))
 	if err != nil {
-		return fmt.Errorf("Error while changing accounts status: %w", err)
+		return fmt.Errorf("error while changing accounts status: %w", err)
 	}
 	return nil
 }
@@ -222,7 +222,7 @@ func (r *UserRepo) GetAllUsersData() (*[]models.LoggedInUser, error) {
         users
     `)
 	if err != nil {
-		return nil, fmt.Errorf("Error while retrieving users data: %w", err)
+		return nil, fmt.Errorf("error while retrieving users data: %w", err)
 	}
 	for rows.Next() {
 		user := models.LoggedInUser{}
@@ -238,12 +238,12 @@ func (r *UserRepo) GetAllUsersData() (*[]models.LoggedInUser, error) {
 			&user.EmailVerificationToken,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("Error while retrieving users data: error while scanning row: %w", err)
+			return nil, fmt.Errorf("error while retrieving users data: error while scanning row: %w", err)
 		}
 		
 		// Déchiffrer l'email
 		if err := user.DecryptEmail(); err != nil {
-			return nil, fmt.Errorf("Erreur de déchiffrement de l'email: %w", err)
+			return nil, fmt.Errorf("erreur de déchiffrement de l'email: %w", err)
 		}
 		
 		data = append(data, user)
@@ -255,7 +255,7 @@ func (r *UserRepo) SetContactVerified(userId string) error {
 	query := "UPDATE users SET email_verified = true WHERE id = $1"
 	_, err := r.db.Exec(query, userId)
 	if err != nil {
-		return fmt.Errorf("Error while setting user contact to verified: %w", err)
+		return fmt.Errorf("error while setting user contact to verified: %w", err)
 	}
 	return nil
 }
@@ -276,7 +276,7 @@ func (r *UserRepo) GetUserByVerificationToken(token string) (*models.User, error
     
     // Déchiffrer l'email
     if err := user.DecryptEmail(); err != nil {
-        return nil, fmt.Errorf("Erreur de déchiffrement de l'email: %w", err)
+        return nil, fmt.Errorf("erreur de déchiffrement de l'email: %w", err)
     }
     
     return &user, nil
@@ -285,7 +285,7 @@ func (r *UserRepo) GetUserByVerificationToken(token string) (*models.User, error
 func (r *UserRepo) Update(user *models.User) error {
 	// Chiffrer l'email avant d'enregistrer
 	if err := user.EncryptEmail(); err != nil {
-		return fmt.Errorf("Erreur de chiffrement de l'email: %w", err)
+		return fmt.Errorf("erreur de chiffrement de l'email: %w", err)
 	}
 	
 	query := `
@@ -322,7 +322,7 @@ func (r *UserRepo) FindByVerificationToken(token string) (*models.User, error) {
 	
 	// Déchiffrer l'email
 	if err := user.DecryptEmail(); err != nil {
-		return nil, fmt.Errorf("Erreur de déchiffrement de l'email: %w", err)
+		return nil, fmt.Errorf("erreur de déchiffrement de l'email: %w", err)
 	}
 	
 	return &user, nil
@@ -343,7 +343,7 @@ func (r *UserRepo) VerifyEmail(token string) error {
 	
 	// Déchiffrer l'email
 	if err := user.DecryptEmail(); err != nil {
-		return fmt.Errorf("Erreur de déchiffrement de l'email: %w", err)
+		return fmt.Errorf("erreur de déchiffrement de l'email: %w", err)
 	}
 	
 	user.EmailVerified = true
@@ -409,7 +409,7 @@ func (r *UserRepo) FindByPasswordResetToken(token string) (*models.User, error) 
     
     // Déchiffrer l'email
     if err := user.DecryptEmail(); err != nil {
-        return nil, fmt.Errorf("Erreur de déchiffrement de l'email: %w", err)
+        return nil, fmt.Errorf("erreur de déchiffrement de l'email: %w", err)
     }
     
     return &user, nil
