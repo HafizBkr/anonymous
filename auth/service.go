@@ -158,58 +158,67 @@ func (s AuthService) Register(data *registrationPayload) (*string, *models.Logge
 
 
 func (s *AuthService) Login(data *loginPayload) (*string, *models.LoggedInUser, error) {
-	var err error
-	var user *models.User
-	var lookupErr string
-	switch data.Method {
-	case "username":
-		user, err = s.users.GetUser(data.Method, data.Username)
-		lookupErr = commons.Codes.UsernameNotFound
-	case "email":
-		user, err = s.users.GetUser(data.Method, data.Email)
-		lookupErr = commons.Codes.EmailNotFound
-	}
-	if err != nil {
-		if errors.Is(err, commons.Errors.ResourceNotFound) {
-			return nil, nil, types.ServiceError{
-				StatusCode: http.StatusBadRequest,
-				ErrorCode:  lookupErr,
-			}
-		}
-		s.logger.Error(err.Error())
-		return nil, nil, commons.Errors.InternalServerError
-	}
+    var err error
+    var user *models.User
+    var lookupErr string
+    
+    switch data.Method {
+    case "username":
+        user, err = s.users.GetUser("username", data.Username)
+        lookupErr = commons.Codes.UsernameNotFound
+    case "email":
+        // Utilisation de GetUserByEmail qui gère déjà le cryptage
+        user, err = s.users.GetUserByEmail(data.Email)
+        lookupErr = commons.Codes.EmailNotFound
+    default:
+        return nil, nil, commons.Errors.InvalidLoginMethod
+    }
 
-	// Vérifier si l'e-mail de l'utilisateur est vérifié
-	if !user.EmailVerified {
-		return nil, nil, types.ServiceError{
-			StatusCode: http.StatusUnauthorized,
-			ErrorCode:  commons.Codes.EmailNotVerified,
-		}
-	}
+    if err != nil {
+        if errors.Is(err, commons.Errors.ResourceNotFound) {
+            return nil, nil, types.ServiceError{
+                StatusCode: http.StatusBadRequest,
+                ErrorCode:  lookupErr,
+            }
+        }
+        s.logger.Error(err.Error())
+        return nil, nil, commons.Errors.InternalServerError
+    }
 
-	if !helpers.HashMatchesString(user.Password, data.Password) {
-		return nil, nil, types.ServiceError{
-			StatusCode: http.StatusBadRequest,
-			ErrorCode:  commons.Codes.WrongPassword,
-		}
-	}
-	token, err := s.jwt.Encode(map[string]interface{}{
-		"id": user.ID,
-	})
-	if err != nil {
-		s.logger.Error(fmt.Sprintf(
-			"Error while encoding token: %s",
-			err,
-		))
-		return nil, nil, commons.Errors.TokenEncodingFailed
-	}
-	userData, err := s.users.GetUserDataByID(user.ID)
-	if err != nil {
-		s.logger.Error(err.Error())
-		return nil, nil, commons.Errors.InternalServerError
-	}
-	return &token, userData, nil
+    // Vérifier si l'e-mail de l'utilisateur est vérifié
+    if !user.EmailVerified {
+        return nil, nil, types.ServiceError{
+            StatusCode: http.StatusUnauthorized,
+            ErrorCode:  commons.Codes.EmailNotVerified,
+        }
+    }
+
+    if !helpers.HashMatchesString(user.Password, data.Password) {
+        return nil, nil, types.ServiceError{
+            StatusCode: http.StatusBadRequest,
+            ErrorCode:  commons.Codes.WrongPassword,
+        }
+    }
+
+    token, err := s.jwt.Encode(map[string]interface{}{
+        "id": user.ID,
+    })
+    if err != nil {
+        s.logger.Error(fmt.Sprintf(
+            "Error while encoding token: %s",
+            err,
+        ))
+        return nil, nil, commons.Errors.TokenEncodingFailed
+    }
+
+    // Récupérer les données de l'utilisateur avec l'email décrypté
+    userData, err := s.users.GetUserDataByID(user.ID)
+    if err != nil {
+        s.logger.Error(err.Error())
+        return nil, nil, commons.Errors.InternalServerError
+    }
+
+    return &token, userData, nil
 }
 
 func (s *AuthService) VerifyEmail(token string) error {
