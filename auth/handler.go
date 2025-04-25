@@ -123,11 +123,6 @@ func (h *AuthHandler) HandleEmailVerification(w http.ResponseWriter, r *http.Req
     // Rediriger vers la page verified.html après la vérification réussie
     http.Redirect(w, r, "/static/verified.html", http.StatusSeeOther)
 }
-
-// In auth/handler.go
-
-// Add these methods to your AuthHandler struct
-
 func (h *AuthHandler) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
     payload := &forgotPasswordPayload{}
     err := json.NewDecoder(r.Body).Decode(payload)
