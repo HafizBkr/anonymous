@@ -11,13 +11,13 @@ type PostRepo interface {
     CreatePost(payload *PostPayload) (*models.Post, error)
     GetPost(id string) (*models.Post, error)
     GetAllPosts(offset, limit int) ([]*models.Post, error)
-        GetPostsByUser(userID string) ([]*models.Post, error)
-        UpdatePost(postID string, payload *PostPayload) (*models.Post, error)
-        DeletePost(postID string) error
-        LikePost(postID, userID string) error
-        UnlikePost(postID, userID string) error
-        AddReaction(postID, userID, reactionType string) error
-        RemoveReaction(postID, userID string) error
+    GetPostsByUser(userID string) ([]*models.Post, error)
+    UpdatePost(postID string, payload *PostPayload) (*models.Post, error)
+    DeletePost(postID string) error
+    LikePost(postID, userID string) error
+    UnlikePost(postID, userID string) error
+    AddReaction(postID, userID, reactionType string) error
+    RemoveReaction(postID, userID string) error
 }
 
 type postRepo struct {
