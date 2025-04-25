@@ -5,7 +5,6 @@ import (
     "database/sql"
 )
 
-// In models/user.go (or wherever your User struct is defined)
 
 type User struct {
     ID                    string    `db:"id" json:"id"`
