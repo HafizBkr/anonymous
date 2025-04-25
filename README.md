@@ -41,6 +41,8 @@ Le backend est modulaire et utilise PostgreSQL comme base de données.
 - `POST /auth/register` – Inscription
 - `POST /auth/login` – Connexion
 - `GET /auth/verify-email` – Vérification d'email
+- `POST /auth//forgot-password` – Mot de passe oublier
+- `POST /aut/reset-password` – Renitialiser le mot de passe 
 
 ### Utilisateurs
 
