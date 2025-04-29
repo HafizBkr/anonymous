@@ -1,15 +1,18 @@
 package auth
+
 import (
 	"anonymous/commons"
+	"anonymous/emails"
 	"anonymous/helpers"
 	"anonymous/models"
 	"anonymous/types"
-	"anonymous/emails"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"time"
-     "os"
+
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -237,13 +240,17 @@ func (s *AuthService) VerifyEmail(token string) error {
 }
 
 func (s *AuthService) ValidateToken(tokenString string) (string, error) {
+    // Strip the "Bearer " prefix if it exists
+    if len(tokenString) > 7 && strings.HasPrefix(tokenString, "Bearer ") {
+        tokenString = tokenString[7:]
+    }
+    
     userID, err := s.jwt.ValidateToken(tokenString)
     if err != nil {
         return "", err
     }
     return userID, nil
 }
-
 
 // ForgotPassword initiates the password reset process for a user
 func (s *AuthService) ForgotPassword(email string) error {
@@ -264,8 +271,6 @@ func (s *AuthService) ForgotPassword(email string) error {
         s.logger.Error(err.Error())
         return commons.Errors.InternalServerError
     }
-    
-   
     
     // Send the password reset email
     emailAddr := os.Getenv("EMAIL")
