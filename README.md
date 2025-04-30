@@ -4,7 +4,7 @@
 ## Description
 
 **Anonymous** est une API REST construite en Go avec le framework `chi` qui alimente une plateforme sociale anonyme. Elle permet aux utilisateurs de :
-- S’inscrire, se connecter et gérer leur compte
+- S’inscrire, se connecter et gérer leur compte (l'email et les mots de passe sont crypter)
 - Créer, liker, commenter et réagir à des publications
 - Rejoindre et gérer des communautés
 - Envoyer des messages en privé ou dans des chats communautaires
