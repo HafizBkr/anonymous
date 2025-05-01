@@ -93,7 +93,6 @@ func (h *AuthHandler) HandleGetCurrentUserData(w http.ResponseWriter, r *http.Re
 	utils.WriteData(w, http.StatusOK, map[string]interface{}{
 		"user": *currUser,
 	})
-	return
 }
 
 func (h *AuthHandler) HandleEmailVerification(w http.ResponseWriter, r *http.Request) {

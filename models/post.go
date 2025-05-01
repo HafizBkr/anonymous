@@ -12,5 +12,5 @@ type Post struct {
     CreatedAt     time.Time `json:"created_at" db:"created_at"`
     LikesCount    int       `json:"likes_count" db:"likes_count"`         // Nombre total de likes
     CommentsCount int       `json:"comments_count" db:"comments_count"`   // Nombre total de commentaires
-    LikedByUser   bool      `json:"liked_by_user"`
+    LikedByUser   bool      `json:"liked_by_user" db:"liked_by_user"` 
 }
