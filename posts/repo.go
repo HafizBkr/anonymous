@@ -7,17 +7,21 @@ import (
     "time"
     "database/sql"
 )
+
 type PostRepo interface {
     CreatePost(payload *PostPayload) (*models.Post, error)
     GetPost(id string) (*models.Post, error)
+    GetPostWithUserLikeStatus(id string, userID string) (*models.Post, error)
     GetAllPosts(offset, limit int) ([]*models.Post, error)
-        GetPostsByUser(userID string) ([]*models.Post, error)
-        UpdatePost(postID string, payload *PostPayload) (*models.Post, error)
-        DeletePost(postID string) error
-        LikePost(postID, userID string) error
-        UnlikePost(postID, userID string) error
-        AddReaction(postID, userID, reactionType string) error
-        RemoveReaction(postID, userID string) error
+    GetAllPostsWithUserLikeStatus(offset, limit int, userID string) ([]*models.Post, error)
+    GetPostsByUser(userID string) ([]*models.Post, error)
+    GetPostsByUserWithLikeStatus(userID string, currentUserID string) ([]*models.Post, error)
+    UpdatePost(postID string, payload *PostPayload) (*models.Post, error)
+    DeletePost(postID string) error
+    LikePost(postID, userID string) error
+    UnlikePost(postID, userID string) error
+    AddReaction(postID, userID, reactionType string) error
+    RemoveReaction(postID, userID string) error
 }
 
 type postRepo struct {
@@ -63,6 +67,30 @@ func (r *postRepo) GetPost(id string) (*models.Post, error) {
     return &post, nil
 }
 
+func (r *postRepo) GetPostWithUserLikeStatus(id string, userID string) (*models.Post, error) {
+    var post models.Post
+    query := `
+        SELECT 
+            p.*,
+            u.username,
+            EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $2) AS liked_by_user
+        FROM 
+            posts p
+        JOIN 
+            users u ON p.user_id = u.id
+        WHERE 
+            p.id = $1
+    `
+    err := r.db.Get(&post, query, id, userID)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return nil, sql.ErrNoRows
+        }
+        return nil, fmt.Errorf("error getting post with like status: %w", err)
+    }
+    return &post, nil
+}
+
 func (r *postRepo) GetAllPosts(offset, limit int) ([]*models.Post, error) {
     var posts []*models.Post
     query := `
@@ -85,7 +113,28 @@ func (r *postRepo) GetAllPosts(offset, limit int) ([]*models.Post, error) {
     return posts, nil
 }
 
-
+func (r *postRepo) GetAllPostsWithUserLikeStatus(offset, limit int, userID string) ([]*models.Post, error) {
+    var posts []*models.Post
+    query := `
+        SELECT 
+            p.*, 
+            u.username,
+            EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $3) AS liked_by_user
+        FROM 
+            posts p
+        JOIN 
+            users u ON p.user_id = u.id
+        ORDER BY 
+            p.created_at DESC 
+        LIMIT 
+            $1 OFFSET $2
+    `
+    err := r.db.Select(&posts, query, limit, offset, userID)
+    if err != nil {
+        return nil, fmt.Errorf("error getting posts with like status: %w", err)
+    }
+    return posts, nil
+}
 
 func (r *postRepo) GetPostsByUser(userID string) ([]*models.Post, error) {
     var posts []*models.Post
@@ -105,6 +154,29 @@ func (r *postRepo) GetPostsByUser(userID string) ([]*models.Post, error) {
     err := r.db.Select(&posts, query, userID)
     if err != nil {
         return nil, fmt.Errorf("error getting posts by user: %w", err)
+    }
+    return posts, nil
+}
+
+func (r *postRepo) GetPostsByUserWithLikeStatus(userID string, currentUserID string) ([]*models.Post, error) {
+    var posts []*models.Post
+    query := `
+        SELECT 
+            p.*, 
+            u.username,
+            EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $2) AS liked_by_user
+        FROM 
+            posts p
+        JOIN 
+            users u ON p.user_id = u.id
+        WHERE 
+            p.user_id = $1 
+        ORDER BY 
+            p.created_at DESC
+    `
+    err := r.db.Select(&posts, query, userID, currentUserID)
+    if err != nil {
+        return nil, fmt.Errorf("error getting posts by user with like status: %w", err)
     }
     return posts, nil
 }

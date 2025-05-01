@@ -1,12 +1,14 @@
 package posts
 
 import (
+	"anonymous/models"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
-	"strconv"
 )
 
 func CreatePostHandler(service PostService) http.HandlerFunc {
@@ -33,25 +35,61 @@ func CreatePostHandler(service PostService) http.HandlerFunc {
 	}
 }
 
+func GetPostHandler(service PostService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		postID := chi.URLParam(r, "postID")
+		
+		// Check if authorization header is provided to get user-specific like status
+		token := r.Header.Get("Authorization")
+		var post *models.Post
+		var err error
+		
+		if token != "" {
+			// If token is provided, get post with authenticated user's like status
+			post, err = service.GetPostWithAuthUser(token, postID)
+		} else {
+			// Otherwise just get the post without like status
+			post, err = service.GetPost(postID)
+		}
+		
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		
+		jsonResponse(w, http.StatusOK, post)
+	}
+}
+
 func GetAllPostsHandler(service PostService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Récupérer les paramètres de pagination depuis la requête
+		// Get pagination parameters from the request
 		offsetStr := r.URL.Query().Get("offset")
 		limitStr := r.URL.Query().Get("limit")
 
-		// Convertir les paramètres en entiers
+		// Convert parameters to integers
 		offset, err := strconv.Atoi(offsetStr)
 		if err != nil {
-			offset = 0 // Valeur par défaut
+			offset = 0 // Default value
 		}
 
 		limit, err := strconv.Atoi(limitStr)
 		if err != nil || limit <= 0 {
-			limit = 10 // Valeur par défaut
+			limit = 10 // Default value
 		}
 
-		// Récupérer les posts avec pagination
-		posts, err := service.GetAllPosts(offset, limit)
+		// Check if authorization header is provided
+		token := r.Header.Get("Authorization")
+		var posts []*models.Post
+		
+		if token != "" {
+			// If token is provided, get posts with authenticated user's like status
+			posts, err = service.GetAllPostsWithAuthUser(token, offset, limit)
+		} else {
+			// Otherwise just get posts without like status
+			posts, err = service.GetAllPosts(offset, limit)
+		}
+		
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -65,11 +103,25 @@ func GetAllPostsHandler(service PostService) http.HandlerFunc {
 func GetPostsByUserHandler(service PostService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := chi.URLParam(r, "userID")
-		posts, err := service.GetPostsByUser(userID)
+		
+		// Check if authorization header is provided
+		token := r.Header.Get("Authorization")
+		var posts []*models.Post
+		var err error
+		
+		if token != "" {
+			// If token is provided, get posts with authenticated user's like status
+			posts, err = service.GetPostsByUserWithAuthUser(token, userID)
+		} else {
+			// Otherwise just get posts without like status
+			posts, err = service.GetPostsByUser(userID)
+		}
+		
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		
 		jsonResponse(w, http.StatusOK, posts)
 	}
 }
